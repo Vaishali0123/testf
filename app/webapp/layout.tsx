@@ -1,5 +1,5 @@
-import Navbar from "../app/components/Navbar";
-import Header from "../app/components/Header";
+import Navbar from "../webapp/components/Navbar";
+import Header from "../webapp/components/Header";
 
 export default function RootLayout({
   children,

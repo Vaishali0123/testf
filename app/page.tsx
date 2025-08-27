@@ -1,6 +1,6 @@
 import React from "react";
-import AnimatedOrbLogo from "./app/components/AnimatedOrbLogo";
-import Background from "./app/components/Background";
+import AnimatedOrbLogo from "./webapp/components/AnimatedOrbLogo";
+import Background from "./webapp/components/Background";
 
 const page = () => {
   return (

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "./app/components/Navbar";
-import Header from "./app/components/Header";
+import Navbar from "./webapp/components/Navbar";
+import Header from "./webapp/components/Header";
 import Link from "next/link";
 
 const geistSans = Geist({
@@ -40,7 +40,7 @@ export default function RootLayout({
             intro
           </Link>
           <div className="w-[0.5px] h-full bg-[#626262]"></div>
-          <Link href="/app" className="pb-2">
+          <Link href="/webapp" className="pb-2">
             Webivus
           </Link>
           <div className="w-[0.5px] h-full bg-[#626262]"></div>

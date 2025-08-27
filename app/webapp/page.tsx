@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import Background from "../app/components/Background";
+import Background from "../webapp/components/Background";
 
 const page = () => {
   const [reload, setReload] = useState(false);
