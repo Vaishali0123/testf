@@ -11,7 +11,7 @@ const Navbar = () => {
     <div className="w-[70px] h-[calc(100vh-150px)] flex flex-col justify-between p-2">
       <div className="h-[50%] rounded-full border p-2 w-full flex flex-col items-center justify-evenly">
         <Link
-          href="/app"
+          href="/webapp"
           prefetch={false}
           className=" flex flex-col gap-2 items-center"
         >
@@ -19,7 +19,7 @@ const Navbar = () => {
           <div className="text-[10px] text-[#909090]">Home</div>
         </Link>
         <Link
-          href="/app/projects"
+          href="/webapp/projects"
           className=" flex flex-col gap-2 items-center"
         >
           <GoProjectSymlink className="w-[25px] h-[25px] text-[#373737]" />
@@ -28,18 +28,18 @@ const Navbar = () => {
           </div>
         </Link>
         <Link
-          href="/app/dashboard"
+          href="/webapp/dashboard"
           className=" flex flex-col gap-2 items-center"
         >
           <MdOutlineSpaceDashboard className="w-[25px] h-[25px] text-[#373737]" />
           <div className="text-[10px] text-[#909090]">Dashboard</div>
         </Link>
         <Link
-          href="/app/settings"
+          href="/webapp/settings"
           className=" flex flex-col gap-2 items-center"
         >
           <IoSettingsOutline className="w-[25px] h-[25px] text-[#373737]" />
-          <div className="text-[10px] text-[#909090]">Setting</div>
+          <div className="text-[10px] text-[#909090]">Settings</div>
         </Link>
       </div>
       <div className="p-2 rounded-full border flex flex-col items-center gap-2 justify-center">

@@ -63,14 +63,14 @@ const Pricing = () => {
       </div>
 
       {/* Plans */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
         {plans.map((plan, idx) => (
           <div
             key={idx}
             className={`p-6 rounded-2xl border ${
               plan.highlight
-                ? "bg-gradient-to-b from-purple-800/30 to-black border-purple-600"
-                : "bg-gradient-to-b from-gray-900 to-black border-gray-700"
+                ? "bg-gradient-to-b from-purple-800/30  to-black border-purple-600"
+                : "bg-gradient-to-b from-[#181818] mt-10 to-black border-gray-700"
             }`}
           >
             {/* Badge for PRO */}
@@ -107,7 +107,7 @@ const Pricing = () => {
       </div>
 
       {/* Dedicated Support + Add-on */}
-      <div className="flex w-[100%] bg-gradient-to-tl from-[#d9d9d900] via-[#7373730d] to-[#73737333] border rounded-3xl   mx-auto mt-10">
+      <div className="flex w-[70%] bg-gradient-to-tl from-[#d9d9d900] via-[#7373730d] to-[#73737333] border rounded-3xl   mx-auto mt-4">
         {/* Dedicated Support */}
         <div className="w-[70%] p-2 rounded-l-2xl">
           <div className="border p-6 rounded-l-2xl">
@@ -130,7 +130,7 @@ const Pricing = () => {
         </div>
 
         {/* Add-on */}
-        <div className="p-2 w-[30%] rounded-r-2xl bg-gradient-to-b from-gray-900 to-black  border-gray-700 flex flex-col justify-between">
+        <div className="p-2 w-[30%] rounded-r-2xl bg-gradient-to-b from-[#181818] to-black  border-gray-700 flex flex-col justify-between">
           <div className=" border flex flex-col items-center p-6 rounded-r-2xl h-full">
             <div>
               <span className="inline-block mb-3 text-xs font-semibold px-3 py-1 bg-gray-700 rounded-full">

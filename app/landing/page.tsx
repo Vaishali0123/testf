@@ -11,16 +11,14 @@ import FAQ from "./components/FAQ";
 
 const page = () => {
   return (
-    <div className="h-screen w-screen overflow-y-scroll fixed bg-[#000000] text-white">
-      <Header />
-      <Hero />
+    <div className="">
+      {/* <Hero /> */}
       {/* <OurWorks /> */}
-      <Feature />
-      <HowItWorks />
-      <Testimonials />
-      <Pricing />
-      <FAQ />
-      <Footer />
+      {/* <Feature /> */}
+      {/* <HowItWorks /> */}
+      {/* <Testimonials /> */}
+      {/* <Pricing /> */}
+      {/* <FAQ /> */}
     </div>
   );
 };

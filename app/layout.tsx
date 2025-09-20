@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "./webapp/components/Navbar";
-import Header from "./webapp/components/Header";
-import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,18 +32,8 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="h-[20px] mt-2 w-full flex gap-4 justify-center items-center mb-0.5">
-          <Link href="/landing" className="text-[#626262] text-[12px]">
-            intro
-          </Link>
-          <div className="w-[0.5px] h-full bg-[#626262]"></div>
-          <Link href="/webapp" className="pb-2">
-            Webivus
-          </Link>
-          <div className="w-[0.5px] h-full bg-[#626262]"></div>
-          <div className="text-[#626262] text-[12px]">Beta</div>
-        </div>
-        <div className="h-[1px] bg-[radial-gradient(circle_at_center,_#959595,_#1e1e1e)]"></div>
+        {/* <TopBar /> */}
+        {/* <div className="h-[1px] bg-[radial-gradient(circle_at_center,_#959595,_#1e1e1e)]"></div> */}
 
         <div className="w-full">{children}</div>
       </body>
