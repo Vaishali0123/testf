@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "./app/components/Navbar";
 import Header from "./app/components/Header";
 import Link from "next/link";
+import TopBar from "./landing/components/Topbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,18 +36,8 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="h-[20px] mt-2 w-full flex gap-4 justify-center items-center mb-0.5">
-          <Link href="/landing" className="text-[#626262] text-[12px]">
-            intro
-          </Link>
-          <div className="w-[0.5px] h-full bg-[#626262]"></div>
-          <Link href="/app" className="pb-2">
-            Webivus
-          </Link>
-          <div className="w-[0.5px] h-full bg-[#626262]"></div>
-          <div className="text-[#626262] text-[12px]">Beta</div>
-        </div>
-        <div className="h-[1px] bg-[radial-gradient(circle_at_center,_#959595,_#1e1e1e)]"></div>
+        {/* <TopBar /> */}
+        {/* <div className="h-[1px] bg-[radial-gradient(circle_at_center,_#959595,_#1e1e1e)]"></div> */}
 
         <div className="w-full">{children}</div>
       </body>
