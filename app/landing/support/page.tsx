@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { FiSearch, FiHelpCircle, FiUsers, FiHeadphones } from "react-icons/fi";
 
-const page: React.FC = () => {
+const Page: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
@@ -134,4 +134,4 @@ const page: React.FC = () => {
   );
 };
 
-export default page;
+export default Page;

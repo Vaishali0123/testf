@@ -6,13 +6,15 @@ import HowItWorks from "./landing/components/HowItWorks";
 import Testimonials from "./landing/components/Testimonials";
 import Pricing from "./landing/components/Pricing";
 import FAQ from "./landing/components/FAQ";
+import TermsPage from "./terms/page";
 const page = () => {
   return (
     <>
       <Landing>
-        {/* <Hero /> */}
+        <Hero />
         {/* <OurWorks /> */}
-        {/* <Feature /> */}
+        <Feature />
+
         <HowItWorks />
         <Testimonials />
         <Pricing />

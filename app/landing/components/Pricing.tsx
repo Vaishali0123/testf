@@ -118,7 +118,7 @@ const Pricing = () => {
               them deployed.
             </p>
             <p className="text-sm text-gray-300 mt-4 font-semibold">
-              What's Included
+              What&apos;s Included
             </p>
             <ul className="mt-3 space-y-2 text-sm text-gray-300">
               <li>✔ Shared Slack Channel</li>

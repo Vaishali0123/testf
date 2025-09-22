@@ -204,3 +204,106 @@ const HowItWorks: React.FC = () => {
 };
 
 export default HowItWorks;
+// Voice Integration
+// "use client";
+// import Image from "next/image";
+// import React, { useState, useEffect, useRef } from "react";
+// import { FiStar, FiPlay, FiArrowRight, FiMic } from "react-icons/fi";
+
+// const HowItWorks: React.FC = () => {
+//   const [isLoaded, setIsLoaded] = useState(false);
+//   const [starsYellow, setStarsYellow] = useState([false, false]);
+//   const [searchText, setSearchText] = useState("");
+//   const recognitionRef = useRef(null);
+
+//   useEffect(() => {
+//     setIsLoaded(true);
+
+//     // Initialize SpeechRecognition
+//     const SpeechRecognition =
+//       (window as any).SpeechRecognition ||
+//       (window as any).webkitSpeechRecognition;
+//     if (SpeechRecognition) {
+//       const recognition = new SpeechRecognition();
+//       recognition.lang = "en-US";
+//       recognition.interimResults = true;
+//       recognition.maxAlternatives = 1;
+
+//       recognition.onresult = (event) => {
+//         const transcript = event.results[0][0].transcript;
+//         setSearchText(transcript);
+//       };
+
+//       recognitionRef.current = recognition;
+//     } else {
+//       console.warn("SpeechRecognition API not supported in this browser");
+//     }
+//   }, []);
+
+//   const toggleStar = (index: number) => {
+//     setStarsYellow((prev) => {
+//       const newStars = [...prev];
+//       newStars[index] = !newStars[index];
+//       return newStars;
+//     });
+//   };
+
+//   const handleMicClick = () => {
+//     if (!recognitionRef.current) return;
+//     recognitionRef.current.start();
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-black text-white overflow-hidden">
+//       {/* Hero Section */}
+//       <section className="relative min-h-screen flex items-center justify-center px-6">
+//         <div className="absolute inset-0 bg-black"></div>
+
+//         <div
+//           className={`text-center max-w-4xl z-10 transform transition-all duration-1000 ${
+//             isLoaded ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+//           }`}
+//         >
+//           <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
+//             Be the first to experience Multi AI-powered WordPress management.
+//             Unlock voice AI at scale with an API Call
+//           </h1>
+
+//           {/* Search Bar */}
+//           <div className="relative max-w-md mx-auto mb-8">
+//             <div className="flex items-center bg-[#191919] backdrop-blur-sm rounded-full border border-gray-800 px-2 hover:border-purple-500 transition-all duration-300">
+//               <Image
+//                 src="/logo.png"
+//                 alt="logo"
+//                 width={50}
+//                 height={50}
+//                 className="-ml-2"
+//               />
+//               <input
+//                 type="text"
+//                 placeholder="Search the impossible..."
+//                 value={searchText}
+//                 onChange={(e) => setSearchText(e.target.value)}
+//                 className="bg-transparent text-white placeholder-gray-500 flex-1 outline-none"
+//               />
+//               <button
+//                 onClick={handleMicClick}
+//                 className="ml-3 p-2 rounded-full transition-all duration-300 hover:scale-110"
+//               >
+//                 <FiMic className="w-6 h-6" />
+//               </button>
+//             </div>
+//             <div className="absolute top-0 right-0 mt-2 mr-4 text-gray-500 hover:text-white transition-all duration-300">
+//               <FiArrowRight className="w-6 h-6" />
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* Rest of your component remains the same */}
+//       {/* Interactive Stars Section, Final Section, etc. */}
+//     </div>
+//   );
+// };
+
+// export default HowItWorks;

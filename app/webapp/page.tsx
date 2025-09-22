@@ -272,7 +272,7 @@
 //       <div
 //         className={`duration-200 relative ${
 //           reload === false
-//             ? "flex flex-col  w-[100%] border p-2 overflow-hidden justify-center h-full relative"
+//             ? "flex flex-col  w-[30%] border p-2 overflow-hidden justify-center h-full relative"
 //             : "flex flex-col items-center justify-center w-full border p-2 h-full relative"
 //         }`}
 //       >
@@ -354,11 +354,8 @@
 
 //         {/* Support Section */}
 //         <div
-//           className={`duration-200 ${
-//             reload === false
-//               ? "w-[100%] flex flex-col items-center hidden scale-0 z-10"
-//               : "w-[40%] flex flex-col items-center z-10"
-//           }`}
+//           className={`duration-200 w-[100%] flex flex-col items-center   z-10"
+//            `}
 //         >
 //           <div
 //             className={`duration-100 ${
@@ -428,6 +425,11 @@
 import React, { useEffect, useState } from "react";
 import { MessageCircle, RotateCcw } from "lucide-react";
 import axios from "axios";
+import { NEXT_PUBLIC_API } from "../utils/config";
+import purpleeffect from "../../public/purpleeffect.svg";
+import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
+import { CiMicrophoneOn } from "react-icons/ci";
+import Image from "next/image";
 
 const credentials = {
   site_url: "http://testingultra.local",
@@ -436,8 +438,55 @@ const credentials = {
   username: "shreya",
   app_password: "qZiW WEwj BIxf zhg1 DKz3 gFs6",
 };
-
+interface Message {
+  type: string;
+  message: string;
+  timestamp: string;
+  images: ImageData[];
+}
+interface ImageData {
+  source_url: string;
+  title?: string;
+  date?: string | Date;
+}
 const Page = () => {
+  const [siteUrl, setSiteUrl] = useState("");
+  const email = "web@gmail.com";
+  // console.log(email, "email");
+  const handleConnect = async () => {
+    if (!siteUrl) return alert("Please enter a site URL");
+
+    try {
+      // Ensure protocol exists
+      let formattedUrl = siteUrl.trim();
+      if (!/^https?:\/\//i.test(formattedUrl)) {
+        formattedUrl = "http://" + formattedUrl; // default to http
+      }
+
+      //  Parse with URL API to always get clean origin
+      const urlObj = new URL(formattedUrl);
+      const cleanUrl = urlObj.origin; // e.g. http://testing3.local
+
+      // Build plugins page URL
+      const pluginsUrl = `${cleanUrl}/wp-admin/plugins.php`;
+
+      // Save only clean site_url in DB
+      // const res = await axios.post("http://localhost:7002/api/site", {
+      //   email,
+      //   site_url: cleanUrl,
+      // });
+
+      // console.log(res?.data?.success);
+      // if (!res?.data?.success) return alert("Something went wrong");
+
+      // Open plugins page in new tab
+      window.open(pluginsUrl, "_blank");
+    } catch (err) {
+      console.error(err);
+      alert("Invalid site URL");
+    }
+  };
+
   const [iframeKey, setIframeKey] = useState(0);
   const [prompt, setPrompt] = useState("");
   const [saving, setSaving] = useState(false);
@@ -447,26 +496,27 @@ const Page = () => {
 
   // Conversation & thread management
   const [threadId] = useState(() => `thread-${Date.now()}`);
-  const [conversation, setConversation] = useState([
+  const [conversation, setConversation] = useState<Message[]>([
     {
       type: "ai",
       message:
         "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
       timestamp: new Date().toLocaleTimeString(),
+      images: [],
     },
   ]);
 
-  const addToConversation = (type, message, images = []) => {
-    setConversation((prev) => [
-      ...prev,
-      {
-        type,
-        message,
-        images,
-        timestamp: new Date().toLocaleTimeString(),
-      },
-    ]);
-  };
+  // const addToConversation = (type, message, images = []) => {
+  //   setConversation((prev) => [
+  //     ...prev,
+  //     {
+  //       type,
+  //       message,
+  //       images,
+  //       timestamp: new Date().toLocaleTimeString(),
+  //     },
+  //   ]);
+  // };
 
   const fetchWordPressStats = async () => {
     try {
@@ -484,8 +534,18 @@ const Page = () => {
     setSaving(true);
 
     const timestamp = new Date().toLocaleTimeString();
-    const newUserMessage = { type: "user", message: prompt, timestamp };
-    const processingMessage = { type: "ai", message: "Typing...", timestamp };
+    const newUserMessage = {
+      type: "user",
+      message: prompt,
+      timestamp,
+      images: [],
+    };
+    const processingMessage = {
+      type: "ai",
+      message: "Typing...",
+      timestamp,
+      images: [],
+    };
 
     setConversation((prev) => [...prev, newUserMessage, processingMessage]);
 
@@ -516,7 +576,7 @@ const Page = () => {
 
       conversationHistory.push({ role: "user", content: prompt });
 
-      const response = await fetch("http://localhost:7002/api/test", {
+      const response = await fetch(`${NEXT_PUBLIC_API}/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -533,7 +593,7 @@ const Page = () => {
       });
 
       const data = await response.json();
-      console.log(data, "dafjhknm");
+
       setConversation((prev) => {
         const withoutProcessing = prev.slice(0, -1); // Remove "Typing..."
 
@@ -563,6 +623,7 @@ const Page = () => {
               type: "system",
               message: `🤖 Routed to: ${data.agentUsed} | Reason: ${data.classificationReasoning}`,
               timestamp: new Date().toLocaleTimeString(),
+              images: [],
             });
           }
 
@@ -571,8 +632,9 @@ const Page = () => {
               type: "ai",
               message:
                 "💡 Suggestions:\n" +
-                data.suggestions.map((s) => `• ${s}`).join("\n"),
+                data.suggestions.map((s: string) => `• ${s}`).join("\n"),
               timestamp: new Date().toLocaleTimeString(),
+              images: [],
             });
           }
 
@@ -583,6 +645,7 @@ const Page = () => {
               type: "ai",
               message: "👁️ Preview updated! Check the preview panel.",
               timestamp: new Date().toLocaleTimeString(),
+              images: [],
             });
           }
 
@@ -601,6 +664,7 @@ const Page = () => {
               type: "ai",
               message: `⚠️ ${data.message || "Something went wrong"}`,
               timestamp: new Date().toLocaleTimeString(),
+              images: [],
             },
           ];
         }
@@ -614,10 +678,11 @@ const Page = () => {
           {
             type: "ai",
             message: `❌ Error: ${
-              err.message ||
+              err ||
               "Failed to process your request. Check if the backend server is running."
             }`,
             timestamp: new Date().toLocaleTimeString(),
+            images: [],
           },
         ];
       });
@@ -634,152 +699,256 @@ const Page = () => {
         message:
           "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
         timestamp: new Date().toLocaleTimeString(),
+        images: [],
       },
     ]);
   };
-  const siteid = sessionStorage.getItem("siteId");
-  const siteurl = sessionStorage.getItem("siteurl");
-  console.log(siteurl, "siteurl");
+  const [siteid, setSiteid] = useState("");
+  const [siteurl, setSiteurl] = useState("");
+  // const siteid = sessionStorage.getItem("siteId");
+  // const siteurl = sessionStorage.getItem("siteurl");
+
+  const [tab, setTab] = useState("tab");
+  useEffect(() => {
+    setTab(sessionStorage.getItem("tab") || "tab");
+    if (typeof window !== "undefined") {
+      setSiteid(sessionStorage.getItem("siteId") || "");
+      setSiteurl(sessionStorage.getItem("siteurl") || "");
+    }
+  }, []);
+
   return (
     <div
-      className={`duration-200 flex w-full items-center justify-center h-full ${
+      className={`duration-200  flex w-full items-center justify-center h-full ${
         reload === false ? "border-transparent gap-2" : "border-transparent"
       }`}
     >
-      <div className="w-[70%] h-full border flex items-center justify-center overflow-hidden">
-        <iframe
-          src={siteurl}
-          className="w-full h-full "
-          style={{ border: "none" }}
-        />
-      </div>
-      {/* Chatting Area */}
       <div
-        className={`duration-200 relative ${
-          reload === false
-            ? "flex flex-col w-[30%] border p-2 overflow-hidden justify-center h-full relative"
-            : "flex flex-col items-center justify-center w-full border p-2 h-full relative"
-        }`}
+        className={`${
+          tab === "tab" && siteurl
+            ? " w-[70%]"
+            : tab === "laptop" || !siteurl
+            ? "w-[100%]"
+            : "w-[30%]"
+        }
+        h-full border flex items-center justify-center overflow-hidden`}
       >
-        {/* Conversation Area */}
-        <div
-          className={`${
-            reload === false
-              ? "h-[calc(100vh-150px)] w-[100%]  items-start justify-start flex "
-              : "hidden"
-          }`}
-        >
-          {reload === false && (
-            <div className="h-[100%] bg-[#0c0c0c] w-[100%] mt-2 flex flex-col">
-              <div className="flex items-center justify-between p-3 border-b border-gray-800">
-                <div className="flex items-center space-x-2">
-                  <MessageCircle size={16} className="text-blue-400" />
-                  <span className="text-sm font-semibold text-gray-300">
-                    Conversation (Thread: {threadId.slice(-6)})
-                  </span>
-                </div>
-                <button
-                  onClick={resetConversation}
-                  className="text-gray-400 hover:text-white transition-colors"
-                  title="Clear conversation"
-                >
-                  <RotateCcw size={14} />
-                </button>
+        {siteurl ? (
+          <iframe
+            src={siteurl}
+            className="w-full h-full "
+            style={{ border: "none" }}
+          />
+        ) : (
+          <div className="w-full h-full  flex items-center justify-center flex-col">
+            <Image
+              src={purpleeffect}
+              alt="pic"
+              width={300}
+              height={300}
+              className="absolute top-50 left-50 z-0"
+            />
+            <div
+              className={`duration-100 
+                 text-[#fff] text-[40px]  text-center font-bold
+              `}
+            >
+              Start <span className="text-[#7A7A7A]">out</span> with
+              <span className="text-[#7A7A7A]">out</span> a{" "}
+              <span className="text-[#7A7A7A]">doubt</span>
+            </div>
+            <div className="flex flex-col gap-2 mt-3  items-start">
+              <div
+                className={`duration-100 
+                  text-[#CACACA] mb-4 font-bold text-center text-[16px]
+              }`}
+              >
+                Upload to WordPress
               </div>
-
-              <div className="h-[100%] p-4 overflow-y-scroll">
-                <div className="space-y-4">
-                  {conversation.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${
-                        msg.type === "user"
-                          ? "justify-end"
-                          : msg.type === "system"
-                          ? "justify-center"
-                          : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[85%] p-3 rounded-lg text-sm ${
-                          msg.type === "user"
-                            ? "bg-purple-800/60 text-white rounded-br-sm"
-                            : msg.type === "system"
-                            ? "bg-white/10 text-gray-300 rounded text-xs opacity-80"
-                            : "bg-white/10 text-gray-100 rounded-bl-sm"
-                        }`}
-                      >
-                        <div className="whitespace-pre-wrap leading-relaxed">
-                          {msg.message}
-                        </div>
-
-                        {/* Render images per message */}
-                        {msg.images?.length > 0 && (
-                          <div className="gap-2 grid grid-cols-3 my-2">
-                            {msg.images.map((image, i) => (
-                              <div key={i} className="flex flex-col gap-2">
-                                <img
-                                  src={image.source_url}
-                                  alt={image.title || "image"}
-                                  className="h-50 w-50 object-contain"
-                                />
-                                {image.date && (
-                                  <div className="text-xs opacity-60">
-                                    Uploaded:{" "}
-                                    {new Date(image.date).toLocaleDateString()}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="text-xs opacity-60 mt-2">
-                          {msg.timestamp}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div
+                className="duration-100 
+                  text-[#CACACA]  text-[16px]
+              "
+              >
+                • Log in to your WordPress Admin.
+              </div>
+              <div
+                className="duration-100 
+                  text-[#CACACA]  text-[16px]
+              "
+              >
+                • Go to Plugins → Add New → Upload Plugin
+              </div>
+              <div
+                className="duration-100 
+                  text-[#CACACA]  text-[16px]
+              "
+              >
+                • Choose the .zip file and click Install Now.
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div
-          className={`duration-200 z-10 ${
-            reload === false
-              ? "text-[#626262] gap-2 flex items-center p-2 mt-4 h-[40px] w-[100%] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737326] text-center text-[16px]"
-              : "text-[#626262] gap-2 flex items-center w-[20%] p-2 mt-4 h-[40px] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737322] text-center text-[16px]"
-          }`}
-        >
-          <div className="flex items-center gap-2 w-full ">
-            <div className="w-[30px] h-[30px] rounded-full bg-white"></div>
             <input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !saving) handleSubmitPrompt();
-              }}
-              placeholder="Enter command"
-              className="text-[#fff] outline-none text-[14px] bg-transparent h-full flex-1"
-              disabled={saving}
+              value={siteUrl}
+              type="text"
+              onChange={(e) => setSiteUrl(e.target.value)}
+              required
+              placeholder="Site url"
+              className="border-2 z-20 border-[#fff] bg-black outline-none w-[30%]  text-white my-4 p-2 text-[14px] rounded-full"
             />
+            <button
+              onClick={handleConnect}
+              className="px-8 z-20 py-2 text-black text-[14px] bg-white rounded-full"
+            >
+              Connect Webivus to Your Site
+            </button>
           </div>
-          <button
-            onClick={handleSubmitPrompt}
-            disabled={saving || !prompt.trim()}
-            className={`w-[30px] h-full rounded-full transition-colors ${
-              saving || !prompt.trim()
-                ? "bg-gray-500 text-white cursor-not-allowed"
-                : "hover:bg-red-600"
+        )}
+      </div>
+      {/* Chatting Area */}
+      {siteurl && (
+        <div
+          className={`duration-200 ${
+            tab === "laptop" ? "hidden" : tab === "tab" ? "w-[30%]" : "w-[70%]"
+          } relative flex flex-col w-[30%] border p-2 overflow-hidden justify-center h-full
+
+        `}
+        >
+          {/* Conversation Area */}
+          <div
+            className={`${
+              reload === false
+                ? "h-[calc(100vh-150px)] w-[100%]  items-start justify-start flex "
+                : "hidden"
             }`}
           >
-            {saving ? "..." : "→"}
-          </button>
+            {reload === false && (
+              <div className="h-[100%] bg-[#0c0c0c] w-[100%] mt-2 flex flex-col">
+                <div className="flex items-center justify-between p-3 border-b border-gray-800">
+                  <div className="flex items-center space-x-2">
+                    <MessageCircle size={16} className="text-blue-400" />
+                    <span className="text-sm font-semibold text-gray-300">
+                      Conversation (Thread: {threadId.slice(-6)})
+                    </span>
+                  </div>
+                  <button
+                    onClick={resetConversation}
+                    className="text-gray-400 hover:text-white transition-colors"
+                    title="Clear conversation"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                </div>
+
+                <div className="h-[100%] p-4 overflow-y-scroll">
+                  <div className="space-y-4">
+                    {conversation.map((msg: Message, idx: number) => (
+                      <div
+                        key={idx}
+                        className={`flex ${
+                          msg.type === "user"
+                            ? "justify-end"
+                            : msg.type === "system"
+                            ? "justify-center"
+                            : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[85%] p-3 rounded-lg text-sm ${
+                            msg.type === "user"
+                              ? "bg-purple-800/60 text-white rounded-br-sm"
+                              : msg.type === "system"
+                              ? "bg-white/10 border  text-gray-300 rounded text-xs opacity-80"
+                              : "bg-white/10 text-gray-100 rounded-bl-sm"
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap leading-relaxed">
+                            {msg.message}
+                          </div>
+
+                          {/* Render images per message */}
+                          {msg.images?.length > 0 && (
+                            <div className="gap-2 grid grid-cols-3 my-2">
+                              {msg.images.map((image: ImageData, i: number) => (
+                                <div key={i} className="flex flex-col gap-2">
+                                  <img
+                                    src={image?.source_url || ""}
+                                    alt={image.title || "image"}
+                                    className="h-50 w-50 object-contain"
+                                  />
+                                  {image.date && (
+                                    <div className="text-xs opacity-60">
+                                      Uploaded:{" "}
+                                      {new Date(
+                                        image.date
+                                      ).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="text-xs opacity-60 mt-2">
+                            {msg.timestamp}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div
+            className={`duration-200 z-10 ${
+              reload === false
+                ? "text-[#626262] gap-2 flex items-center p-2 mt-4 h-[40px] w-[100%] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737326] text-center text-[16px]"
+                : "text-[#626262] gap-2 flex items-center w-[20%] p-2 mt-4 h-[40px] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737322] text-center text-[16px]"
+            }`}
+          >
+            <div className="flex items-center gap-2 w-full ">
+              <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-white">
+                <CiMicrophoneOn size={20} />
+              </div>
+              <input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && !saving) handleSubmitPrompt();
+                }}
+                placeholder="Enter command"
+                className="text-[#fff] outline-none text-[14px] bg-transparent h-full flex-1"
+                disabled={saving}
+              />
+            </div>
+            <button
+              onClick={handleSubmitPrompt}
+              disabled={saving || !prompt.trim()}
+              className={`w-[30px] h-full rounded-full transition-colors ${
+                saving || !prompt.trim()
+                  ? "bg-gray-500 text-white cursor-not-allowed"
+                  : "hover:bg-gray-600"
+              }`}
+            >
+              {saving ? "..." : "→"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {tab === "laptop" && (
+        <div
+          onClick={() => {
+            setTab("tab");
+            sessionStorage.setItem("tab", "tab");
+          }}
+          className="bg-black rounded-full p-2 absolute bottom-10 right-2 flex items-center justify-center"
+        >
+          <IoChatbubbleEllipsesOutline color="white" size={25} />
+        </div>
+      )}
     </div>
   );
 };

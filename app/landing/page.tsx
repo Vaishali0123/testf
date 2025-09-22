@@ -12,13 +12,13 @@ import FAQ from "./components/FAQ";
 const page = () => {
   return (
     <div className="">
-      {/* <Hero /> */}
+      <Hero />
       {/* <OurWorks /> */}
-      {/* <Feature /> */}
-      {/* <HowItWorks /> */}
-      {/* <Testimonials /> */}
-      {/* <Pricing /> */}
-      {/* <FAQ /> */}
+      <Feature />
+      <HowItWorks />
+      <Testimonials />
+      <Pricing />
+      <FAQ />
     </div>
   );
 };

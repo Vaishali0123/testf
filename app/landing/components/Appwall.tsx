@@ -7,6 +7,7 @@ import { GiUpgrade } from "react-icons/gi";
 import { GoProjectSymlink } from "react-icons/go";
 import { IoArrowForward, IoSettingsOutline } from "react-icons/io5";
 import { MdOutlineSpaceDashboard } from "react-icons/md";
+import { CgProfile } from "react-icons/cg";
 
 const Appwall = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -148,8 +149,8 @@ const Appwall = () => {
             <div className="w-[45px] h-[45px] flex items-center justify-center rounded-full border">
               <GiUpgrade className="w-[25px] h-[25px] text-[#373737]" />
             </div>
-            <div className="w-[45px] h-[45px] rounded-full border text-[#373737]">
-              dp
+            <div className="w-[45px] flex items-center justify-center h-[45px] rounded-full border text-[#373737]">
+              <CgProfile size={30} className="text-[#373737]" />
             </div>
           </div>
         </div>

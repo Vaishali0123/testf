@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
-const page = () => {
+const Page = () => {
   const [email, setEmail] = useState("");
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -112,4 +112,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

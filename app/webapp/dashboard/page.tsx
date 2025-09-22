@@ -48,7 +48,7 @@ export default function Page() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <div className="bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#7373731c] p-4 rounded-sm border  flex items-center gap-3 cursor-pointer ho">
             <FiFile className="text-blue-400" />
-            Create a new page called "About Us" with welcome content
+            Create a new page called &quot;About Us&quot; with welcome content
           </div>
           <div className="bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#7373731c] p-4 rounded-sm border  flex items-center gap-3 cursor-pointer ho">
             <FiFile className="text-blue-400" />
@@ -64,7 +64,7 @@ export default function Page() {
           </div>
           <div className="bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#7373731c] p-4 rounded-sm border  flex items-center gap-3 cursor-pointer ho">
             <FiSettings className="text-gray-400" />
-            Change site title to "My AI Website"
+            Change site title to &quot;My AI Website&quot;
           </div>
           <div className="bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#7373731c] p-4 rounded-sm border  flex items-center gap-3 cursor-pointer ho">
             <FiFile className="text-blue-400" />

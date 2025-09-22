@@ -2,21 +2,33 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { FiExternalLink, FiShare } from "react-icons/fi";
+import { FiExternalLink } from "react-icons/fi";
+import { IoPricetagsOutline } from "react-icons/io5";
+import { MdOutlineFeaturedPlayList } from "react-icons/md";
 
-const header = () => {
+const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="h-[60px]  flex items-center justify-between px-4 w-full">
-      <div className="flex items-center gap-2">
+      <Link href={"/"} className="flex items-center gap-2">
         <Image src="/logo.png" alt="logo" width={50} height={50} />
         <div className="font-semibold">Webivus</div>
-      </div>
+      </Link>
       <div className="flex items-center gap-2">
-        <div className="text-[14px] flex gap-2 items-center cursor-pointer">
-          <FiShare />
-          Share
-        </div>
+        <Link
+          href={"/landing/features"}
+          className="text-[14px] flex gap-2 border dark:border-[#fff] border-[#000] px-2 py-1 rounded-full items-center cursor-pointer"
+        >
+          <MdOutlineFeaturedPlayList />
+          Features
+        </Link>
+        <Link
+          href={"/landing/pricing"}
+          className="text-[14px] flex gap-2 border dark:border-[#fff] border-[#000] px-2 py-1 rounded-full items-center cursor-pointer"
+        >
+          <IoPricetagsOutline />
+          Pricing
+        </Link>
         <div className="flex text-[12px] gap-1 p-1 bg-[#35353544] border rounded-full">
           <div className="relative inline-block text-left">
             {/* Dropdown button */}
@@ -84,7 +96,7 @@ const header = () => {
           </div>
 
           <Link
-            href={"../auth"}
+            href={"../webapp"}
             className="px-4 rounded-full cursor-pointer text-[#000] py-2 bg-white border"
           >
             Get started
@@ -95,4 +107,4 @@ const header = () => {
   );
 };
 
-export default header;
+export default Header;

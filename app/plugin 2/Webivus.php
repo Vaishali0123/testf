@@ -16,12 +16,119 @@ define("WEBIVUS_API_URL", "http://localhost:7002/api/site");
 define("WEBIVUS_UPDATE_TOKEN_URL", "http://localhost:7002/api/updateAccessToken");
 define("WEBIVUS_PLUGIN_API_URL", "http://localhost:7002/api/plugins");
 
+// JWT Configuration
+define("WEBIVUS_JWT_SECRET_KEY", "webivus-jwt-secret-key-" . get_option('siteurl'));
+define("WEBIVUS_JWT_ALGORITHM", "HS256");
+
 // Security: Add nonce for forms
 add_action('init', function() {
     if (!session_id()) {
         session_start();
     }
 });
+
+// JWT Helper Functions
+// ==========================================
+
+/**
+ * Generate a JWT token for WordPress user authentication
+ */
+function webivus_generate_jwt_token($user_id) {
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return false;
+    }
+    
+    $header = json_encode(['typ' => 'JWT', 'alg' => WEBIVUS_JWT_ALGORITHM]);
+    
+    $payload = json_encode([
+        'iss' => get_site_url(), // Issuer
+        'aud' => get_site_url(), // Audience
+        'iat' => time(), // Issued at
+        'exp' => time() + (24 * 60 * 60), // Expires in 24 hours
+        'user_id' => $user_id,
+        'username' => $user->user_login,
+        'email' => $user->user_email,
+        'roles' => $user->roles,
+        'site_url' => get_site_url()
+    ]);
+    
+    $base64_header = webivus_base64url_encode($header);
+    $base64_payload = webivus_base64url_encode($payload);
+    
+    $signature = hash_hmac('sha256', $base64_header . "." . $base64_payload, WEBIVUS_JWT_SECRET_KEY, true);
+    $base64_signature = webivus_base64url_encode($signature);
+    
+    return $base64_header . "." . $base64_payload . "." . $base64_signature;
+}
+
+/**
+ * Verify and decode JWT token
+ */
+function webivus_verify_jwt_token($token) {
+    $parts = explode('.', $token);
+    if (count($parts) !== 3) {
+        return false;
+    }
+    
+    list($base64_header, $base64_payload, $base64_signature) = $parts;
+    
+    // Verify signature
+    $signature = webivus_base64url_decode($base64_signature);
+    $expected_signature = hash_hmac('sha256', $base64_header . "." . $base64_payload, WEBIVUS_JWT_SECRET_KEY, true);
+    
+    if (!hash_equals($signature, $expected_signature)) {
+        return false;
+    }
+    
+    // Decode payload
+    $payload = json_decode(webivus_base64url_decode($base64_payload), true);
+    
+    // Check expiration
+    if (isset($payload['exp']) && $payload['exp'] < time()) {
+        return false;
+    }
+    
+    // Verify user still exists
+    if (!get_userdata($payload['user_id'])) {
+        return false;
+    }
+    
+    return $payload;
+}
+
+/**
+ * Base64 URL encode
+ */
+function webivus_base64url_encode($data) {
+    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+}
+
+/**
+ * Base64 URL decode
+ */
+function webivus_base64url_decode($data) {
+    return base64_decode(str_pad(strtr($data, '-_', '+/'), strlen($data) % 4, '=', STR_PAD_RIGHT));
+}
+
+/**
+ * Get admin user JWT token
+ */
+function webivus_get_admin_jwt_token() {
+    $admin_users = get_users(['role' => 'administrator', 'number' => 1]);
+    if (empty($admin_users)) {
+        // Fallback to user ID 1
+        $admin_user = get_userdata(1);
+        if (!$admin_user) {
+            return false;
+        }
+        $admin_id = 1;
+    } else {
+        $admin_id = $admin_users[0]->ID;
+    }
+    
+    return webivus_generate_jwt_token($admin_id);
+}
 
 // Run only when plugin is activated
 register_activation_hook(__FILE__, "webivus_activate_plugin");
@@ -37,8 +144,12 @@ function webivus_activate_plugin() {
     $admin_username = $admin_user ? $admin_user->user_login : "admin";
     $logo_url = get_site_icon_url();
     
-    // Generate secure token
-    $access_token = wp_generate_password(32, false, false); // No special chars for API compatibility
+    // Generate JWT token for admin user
+    $access_token = webivus_get_admin_jwt_token();
+    if (!$access_token) {
+        error_log("Webivus Connector: Failed to generate JWT token");
+        return;
+    }
     
     // Prepare data with validation
     $body = array(
@@ -179,7 +290,11 @@ function webivus_admin_page() {
         }
         
         $site_url = get_site_url();
-        $new_token = wp_generate_password(32, false, false);
+        $new_token = webivus_get_admin_jwt_token();
+        if (!$new_token) {
+            echo "<div class='notice notice-error'><p>❌ Failed to generate JWT token</p></div>";
+            return;
+        }
         
         $body = array(
             "site_url"     => esc_url_raw($site_url),
@@ -231,10 +346,23 @@ function webivus_admin_page() {
             <h2>Connection Status</h2>
             <?php if ($current_token): ?>
                 <p><strong>Status:</strong> <span style="color: green;">✅ Connected</span></p>
-                <p><strong>Current Access Token:</strong></p>
-                <code style="background: #f1f1f1; padding: 10px; display: block; margin: 10px 0; word-break: break-all; font-family: monospace;">
+                <p><strong>Token Type:</strong> JWT (JSON Web Token)</p>
+                <p><strong>Current JWT Token:</strong></p>
+                <code style="background: #f1f1f1; padding: 10px; display: block; margin: 10px 0; word-break: break-all; font-family: monospace; font-size: 12px;">
                     <?php echo esc_html($current_token); ?>
                 </code>
+                <p><strong>Token Information:</strong></p>
+                <?php 
+                $token_payload = webivus_verify_jwt_token($current_token);
+                if ($token_payload): ?>
+                    <ul>
+                        <li><strong>Issued At:</strong> <?php echo esc_html(date('Y-m-d H:i:s', $token_payload['iat'])); ?></li>
+                        <li><strong>Expires At:</strong> <?php echo esc_html(date('Y-m-d H:i:s', $token_payload['exp'])); ?></li>
+                        <li><strong>User:</strong> <?php echo esc_html($token_payload['username']); ?></li>
+                        <li><strong>Email:</strong> <?php echo esc_html($token_payload['email']); ?></li>
+                        <li><strong>Roles:</strong> <?php echo esc_html(implode(', ', $token_payload['roles'])); ?></li>
+                    </ul>
+                <?php endif; ?>
             <?php else: ?>
                 <p><strong>Status:</strong> <span style="color: red;">❌ Not Connected</span></p>
                 <p>Please deactivate and reactivate the plugin to establish connection.</p>
@@ -286,7 +414,7 @@ function webivus_uninstall_plugin() {
 // ==========================================
 
 /**
- * Verify administrator token for API requests
+ * Verify administrator JWT token for API requests
  */
 function webivus_verify_admin_token($token) {
     if (!$token) {
@@ -294,23 +422,28 @@ function webivus_verify_admin_token($token) {
         return false;
     }
     
-    $stored_token = get_option("webivus_access_token");
-    if (!$stored_token) {
-        error_log("Webivus Plugin API: No stored token found");
+    // Verify JWT token
+    $payload = webivus_verify_jwt_token($token);
+    if (!$payload) {
+        error_log("Webivus Plugin API: Invalid or expired JWT token");
         return false;
     }
     
-    // Trim whitespace from both tokens
-    $token = trim($token);
-    $stored_token = trim($stored_token);
+    // Check if user has administrator role
+    if (!in_array('administrator', $payload['roles'])) {
+        error_log("Webivus Plugin API: User does not have administrator role");
+        return false;
+    }
     
-    // Log token comparison for debugging
-    error_log("Webivus Plugin API: Comparing tokens - Provided: '" . $token . "' (length: " . strlen($token) . "), Stored: '" . $stored_token . "' (length: " . strlen($stored_token) . ")");
+    // Verify the user still exists and is active
+    $user = get_userdata($payload['user_id']);
+    if (!$user || !user_can($user, 'manage_options')) {
+        error_log("Webivus Plugin API: User not found or insufficient permissions");
+        return false;
+    }
     
-    $result = hash_equals($stored_token, $token);
-    error_log("Webivus Plugin API: Token verification result: " . ($result ? 'SUCCESS' : 'FAILED'));
-    
-    return $result;
+    error_log("Webivus Plugin API: JWT token verification successful for user: " . $payload['username']);
+    return true;
 }
 
 /**
@@ -352,7 +485,22 @@ function webivus_get_installed_plugins() {
  * Install plugin by slug from WordPress.org repository
  */
 function webivus_install_plugin($slug) {
-    if (!current_user_can('install_plugins')) {
+    // Check if user has install_plugins capability
+    $user_has_permission = false;
+    
+    // Try current user first (for admin interface)
+    if (is_user_logged_in() && current_user_can('install_plugins')) {
+        $user_has_permission = true;
+    }
+    
+    // If no current user, check if this is an API request with valid JWT
+    if (!$user_has_permission && defined('DOING_AJAX') && DOING_AJAX) {
+        // For API requests, we'll check the JWT token in the calling function
+        // If we reach here, the token was already validated
+        $user_has_permission = true;
+    }
+    
+    if (!$user_has_permission) {
         return array('success' => false, 'message' => 'Insufficient permissions to install plugins');
     }
     
@@ -416,7 +564,22 @@ function webivus_install_plugin($slug) {
  * Activate plugin by slug
  */
 function webivus_activate_plugin_by_slug($slug) {
-    if (!current_user_can('activate_plugins')) {
+    // Check if user has activate_plugins capability
+    $user_has_permission = false;
+    
+    // Try current user first (for admin interface)
+    if (is_user_logged_in() && current_user_can('activate_plugins')) {
+        $user_has_permission = true;
+    }
+    
+    // If no current user, check if this is an API request with valid JWT
+    if (!$user_has_permission && defined('DOING_AJAX') && DOING_AJAX) {
+        // For API requests, we'll check the JWT token in the calling function
+        // If we reach here, the token was already validated
+        $user_has_permission = true;
+    }
+    
+    if (!$user_has_permission) {
         return array('success' => false, 'message' => 'Insufficient permissions to activate plugins');
     }
     
@@ -454,7 +617,22 @@ function webivus_activate_plugin_by_slug($slug) {
  * Deactivate plugin by slug
  */
 function webivus_deactivate_plugin_by_slug($slug) {
-    if (!current_user_can('activate_plugins')) {
+    // Check if user has activate_plugins capability
+    $user_has_permission = false;
+    
+    // Try current user first (for admin interface)
+    if (is_user_logged_in() && current_user_can('activate_plugins')) {
+        $user_has_permission = true;
+    }
+    
+    // If no current user, check if this is an API request with valid JWT
+    if (!$user_has_permission && defined('DOING_AJAX') && DOING_AJAX) {
+        // For API requests, we'll check the JWT token in the calling function
+        // If we reach here, the token was already validated
+        $user_has_permission = true;
+    }
+    
+    if (!$user_has_permission) {
         return array('success' => false, 'message' => 'Insufficient permissions to deactivate plugins');
     }
     
@@ -586,11 +764,99 @@ function webivus_handle_plugin_management_api() {
 }
 
 /**
+ * Add JWT authentication endpoint
+ */
+add_action('rest_api_init', function() {
+    register_rest_route('webivus/v1', '/jwt/token', array(
+        'methods' => 'POST',
+        'callback' => 'webivus_generate_jwt_endpoint',
+        'permission_callback' => '__return_true', // We'll handle auth in callback
+        'args' => array(
+            'username' => array(
+                'required' => true,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field'
+            ),
+            'password' => array(
+                'required' => true,
+                'type' => 'string'
+            )
+        )
+    ));
+});
+
+function webivus_generate_jwt_endpoint($request) {
+    $username = $request->get_param('username');
+    $password = $request->get_param('password');
+    
+    // Authenticate user
+    $user = wp_authenticate($username, $password);
+    if (is_wp_error($user)) {
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Invalid credentials'
+        ), 401);
+    }
+    
+    // Check if user has administrator role
+    if (!user_can($user, 'manage_options')) {
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Insufficient permissions'
+        ), 403);
+    }
+    
+    // Generate JWT token
+    $token = webivus_generate_jwt_token($user->ID);
+    if (!$token) {
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Failed to generate token'
+        ), 500);
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'token' => $token,
+        'user_email' => $user->user_email,
+        'user_nicename' => $user->user_nicename,
+        'user_display_name' => $user->display_name,
+        'expires_in' => 86400 // 24 hours
+    ), 200);
+}
+
+/**
  * Add plugin management section to admin page
  */
 function webivus_add_plugin_management_section() {
     $current_token = get_option("webivus_access_token");
     ?>
+    <div class="card" style="max-width: 800px; margin-top: 20px;">
+        <h2>JWT Authentication</h2>
+        <p>Generate JWT tokens for WordPress authentication:</p>
+        
+        <h3>JWT Token Endpoint</h3>
+        <code style="background: #f1f1f1; padding: 10px; display: block; margin: 10px 0; word-break: break-all; font-family: monospace;">
+            POST <?php echo esc_html(get_rest_url() . 'webivus/v1/jwt/token'); ?>
+        </code>
+        
+        <h3>Authentication Request</h3>
+        <div style="background: #f1f1f1; padding: 15px; margin: 10px 0; border-radius: 4px;">
+            <h4>Generate JWT Token:</h4>
+            <pre style="margin: 0; white-space: pre-wrap;">POST <?php echo esc_html(get_rest_url() . 'webivus/v1/jwt/token'); ?>
+
+{
+    "username": "admin",
+    "password": "your_password"
+}</pre>
+        </div>
+        
+        <h3>Usage with Authorization Header</h3>
+        <div style="background: #f1f1f1; padding: 15px; margin: 10px 0; border-radius: 4px;">
+            <pre style="margin: 0; white-space: pre-wrap;">Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...</pre>
+        </div>
+    </div>
+    
     <div class="card" style="max-width: 800px; margin-top: 20px;">
         <h2>Plugin Management API</h2>
         <p>Use these endpoints to manage WordPress plugins programmatically:</p>
