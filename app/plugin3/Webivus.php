@@ -45,7 +45,7 @@ function webivus_generate_jwt_token($user_id) {
         'iss' => get_site_url(), // Issuer
         'aud' => get_site_url(), // Audience
         'iat' => time(), // Issued at
-        'exp' => time() + (30 * 24 * 60 * 60), // Expires in 30 days
+        'exp' => time() + (24 * 60 * 60), // Expires in 24 hours
         'user_id' => $user_id,
         'username' => $user->user_login,
         'email' => $user->user_email,
@@ -130,317 +130,6 @@ function webivus_get_admin_jwt_token() {
     return webivus_generate_jwt_token($admin_id);
 }
 
-/**
- * Collect comprehensive WordPress site data
- */
-function webivus_collect_site_data() {
-    global $wpdb;
-    
-    // Basic site information
-    $site_data = array(
-        'site_url' => get_site_url(),
-        'site_name' => get_bloginfo('name'),
-        'site_description' => get_bloginfo('description'),
-        'admin_email' => get_option('admin_email'),
-        'timezone' => get_option('timezone_string'),
-        'date_format' => get_option('date_format'),
-        'time_format' => get_option('time_format'),
-        'language' => get_locale(),
-        'wp_version' => get_bloginfo('version'),
-        'php_version' => PHP_VERSION,
-        'mysql_version' => $wpdb->db_version(),
-        'theme' => array(
-            'name' => get_option('stylesheet'),
-            'version' => wp_get_theme()->get('Version'),
-            'parent' => wp_get_theme()->get('Template')
-        ),
-        'multisite' => is_multisite(),
-        'memory_limit' => ini_get('memory_limit'),
-        'max_execution_time' => ini_get('max_execution_time'),
-        'upload_max_filesize' => ini_get('upload_max_filesize'),
-        'post_max_size' => ini_get('post_max_size')
-    );
-    
-    // Count content
-    $site_data['content_counts'] = array(
-        'posts' => wp_count_posts('post')->publish,
-        'pages' => wp_count_posts('page')->publish,
-        'draft_posts' => wp_count_posts('post')->draft,
-        'draft_pages' => wp_count_posts('page')->draft,
-        'private_posts' => wp_count_posts('post')->private,
-        'private_pages' => wp_count_posts('page')->private,
-        'trash_posts' => wp_count_posts('post')->trash,
-        'trash_pages' => wp_count_posts('page')->trash,
-        'attachments' => wp_count_posts('attachment')->inherit,
-        'comments' => wp_count_comments()->approved,
-        'pending_comments' => wp_count_comments()->moderated,
-        'spam_comments' => wp_count_comments()->spam,
-        'trash_comments' => wp_count_comments()->trash
-    );
-    
-    // User counts
-    $user_counts = count_users();
-    $site_data['user_counts'] = array(
-        'total_users' => $user_counts['total_users'],
-        'by_role' => $user_counts['avail_roles']
-    );
-    
-    // Plugin information
-    if (!function_exists('get_plugins')) {
-        require_once ABSPATH . 'wp-admin/includes/plugin.php';
-    }
-    
-    $all_plugins = get_plugins();
-    $active_plugins = get_option('active_plugins', array());
-    $network_active_plugins = is_multisite() ? get_site_option('active_sitewide_plugins', array()) : array();
-    
-    $plugins = array();
-    foreach ($all_plugins as $plugin_file => $plugin_data) {
-        $is_active = in_array($plugin_file, $active_plugins) || isset($network_active_plugins[$plugin_file]);
-        $plugins[] = array(
-            'name' => $plugin_data['Name'],
-            'slug' => dirname($plugin_file),
-            'version' => $plugin_data['Version'],
-            'description' => $plugin_data['Description'],
-            'author' => $plugin_data['Author'],
-            'is_active' => $is_active,
-            'is_network_active' => isset($network_active_plugins[$plugin_file])
-        );
-    }
-    
-    $site_data['plugins'] = array(
-        'total_plugins' => count($all_plugins),
-        'active_plugins' => count($active_plugins),
-        'inactive_plugins' => count($all_plugins) - count($active_plugins),
-        'plugin_list' => $plugins
-    );
-    
-    // Theme information
-    $current_theme = wp_get_theme();
-    $available_themes = wp_get_themes();
-    
-    $site_data['themes'] = array(
-        'current_theme' => array(
-            'name' => $current_theme->get('Name'),
-            'version' => $current_theme->get('Version'),
-            'description' => $current_theme->get('Description'),
-            'author' => $current_theme->get('Author'),
-            'parent' => $current_theme->get('Template')
-        ),
-        'total_themes' => count($available_themes),
-        'available_themes' => array_keys($available_themes)
-    );
-    
-    // Database information
-    $site_data['database'] = array(
-        'db_name' => DB_NAME,
-        'db_host' => DB_HOST,
-        'db_charset' => DB_CHARSET,
-        'db_collate' => DB_COLLATE,
-        'table_prefix' => $wpdb->prefix,
-        'db_size' => webivus_get_database_size()
-    );
-    
-    // Server information
-    $site_data['server'] = array(
-        'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
-        'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? 'Unknown',
-        'server_name' => $_SERVER['SERVER_NAME'] ?? 'Unknown',
-        'https' => is_ssl(),
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
-    );
-    
-    // Security information
-    $site_data['security'] = array(
-        'file_editing_disabled' => !defined('DISALLOW_FILE_EDIT') || DISALLOW_FILE_EDIT,
-        'wp_debug' => defined('WP_DEBUG') && WP_DEBUG,
-        'wp_debug_log' => defined('WP_DEBUG_LOG') && WP_DEBUG_LOG,
-        'wp_debug_display' => defined('WP_DEBUG_DISPLAY') && WP_DEBUG_DISPLAY,
-        'script_debug' => defined('SCRIPT_DEBUG') && SCRIPT_DEBUG,
-        'automatic_updates' => defined('WP_AUTO_UPDATE_CORE') ? WP_AUTO_UPDATE_CORE : 'default'
-    );
-    
-    // Performance information
-    $site_data['performance'] = array(
-        'object_cache' => wp_using_ext_object_cache(),
-        'opcache_enabled' => function_exists('opcache_get_status') && opcache_get_status(),
-        'redis_enabled' => class_exists('Redis'),
-        'memcached_enabled' => class_exists('Memcached')
-    );
-    
-    // Recent activity
-    $site_data['recent_activity'] = array(
-        'last_post' => webivus_get_last_post_date(),
-        'last_comment' => webivus_get_last_comment_date(),
-        'last_user_registration' => webivus_get_last_user_registration_date(),
-        'last_plugin_update' => webivus_get_last_plugin_update_date()
-    );
-    
-    // Token information - only include if we have a valid token
-    $current_token = get_option("webivus_access_token");
-    if (!empty($current_token)) {
-        $token_info = webivus_get_token_info($current_token);
-        $site_data['token_info'] = array(
-            'has_token' => true,
-            'is_expired' => $token_info['expired'],
-            'generated_at' => $token_info['issued_at'] ? date('Y-m-d H:i:s', $token_info['issued_at']) : null,
-            'expires_at' => $token_info['expires_at'] ? date('Y-m-d H:i:s', $token_info['expires_at']) : null,
-            'days_remaining' => $token_info['days_remaining'],
-            'username' => $token_info['username']
-        );
-    } else {
-        $site_data['token_info'] = array(
-            'has_token' => false,
-            'is_expired' => true,
-            'generated_at' => null,
-            'expires_at' => null,
-            'days_remaining' => 0,
-            'username' => null
-        );
-    }
-    
-    return $site_data;
-}
-
-/**
- * Get database size
- */
-function webivus_get_database_size() {
-    global $wpdb;
-    
-    $result = $wpdb->get_var("
-        SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'DB Size in MB'
-        FROM information_schema.tables
-        WHERE table_schema = '" . DB_NAME . "'
-    ");
-    
-    return $result ? $result . ' MB' : 'Unknown';
-}
-
-/**
- * Get last post date
- */
-function webivus_get_last_post_date() {
-    global $wpdb;
-    
-    $result = $wpdb->get_var("
-        SELECT post_date 
-        FROM {$wpdb->posts} 
-        WHERE post_type IN ('post', 'page') 
-        AND post_status = 'publish' 
-        ORDER BY post_date DESC 
-        LIMIT 1
-    ");
-    
-    return $result ? $result : 'No posts';
-}
-
-/**
- * Get last comment date
- */
-function webivus_get_last_comment_date() {
-    global $wpdb;
-    
-    $result = $wpdb->get_var("
-        SELECT comment_date 
-        FROM {$wpdb->comments} 
-        WHERE comment_approved = '1' 
-        ORDER BY comment_date DESC 
-        LIMIT 1
-    ");
-    
-    return $result ? $result : 'No comments';
-}
-
-/**
- * Get last user registration date
- */
-function webivus_get_last_user_registration_date() {
-    global $wpdb;
-    
-    $result = $wpdb->get_var("
-        SELECT user_registered 
-        FROM {$wpdb->users} 
-        ORDER BY user_registered DESC 
-        LIMIT 1
-    ");
-    
-    return $result ? $result : 'No users';
-}
-
-/**
- * Get last plugin update date
- */
-function webivus_get_last_plugin_update_date() {
-    $updates = get_site_transient('update_plugins');
-    if ($updates && isset($updates->last_checked)) {
-        return date('Y-m-d H:i:s', $updates->last_checked);
-    }
-    return 'Unknown';
-}
-
-/**
- * Check if JWT token is expired
- */
-function webivus_is_token_expired($token) {
-    if (!$token) {
-        return true;
-    }
-    
-    $payload = webivus_verify_jwt_token($token);
-    if (!$payload) {
-        return true;
-    }
-    
-    // Check if token is expired
-    if (isset($payload['exp']) && $payload['exp'] < time()) {
-        return true;
-    }
-    
-    return false;
-}
-
-/**
- * Get token expiry information
- */
-function webivus_get_token_info($token) {
-    if (!$token || empty(trim($token))) {
-        return array(
-            'expired' => true, 
-            'expires_at' => null, 
-            'days_remaining' => 0,
-            'issued_at' => null,
-            'username' => null
-        );
-    }
-    
-    $payload = webivus_verify_jwt_token($token);
-    if (!$payload || !is_array($payload)) {
-        return array(
-            'expired' => true, 
-            'expires_at' => null, 
-            'days_remaining' => 0,
-            'issued_at' => null,
-            'username' => null
-        );
-    }
-    
-    $expires_at = isset($payload['exp']) ? $payload['exp'] : null;
-    $issued_at = isset($payload['iat']) ? $payload['iat'] : null;
-    $username = isset($payload['username']) ? $payload['username'] : 'Unknown';
-    
-    $is_expired = $expires_at && $expires_at < time();
-    $days_remaining = $expires_at ? max(0, ceil(($expires_at - time()) / (24 * 60 * 60))) : 0;
-    
-    return array(
-        'expired' => $is_expired,
-        'expires_at' => $expires_at,
-        'days_remaining' => $days_remaining,
-        'issued_at' => $issued_at,
-        'username' => $username
-    );
-}
-
 // Run only when plugin is activated
 register_activation_hook(__FILE__, "webivus_activate_plugin");
 function webivus_activate_plugin() {
@@ -462,26 +151,18 @@ function webivus_activate_plugin() {
         return;
     }
     
-    error_log("Webivus Connector: Generated JWT token successfully");
+    // Prepare data with validation
+    $body = array(
+        "site_url"      => esc_url_raw($site_url),
+        "admin_email"   => sanitize_email($admin_email),
+        "admin_username"=> sanitize_user($admin_username),
+        "access_token"  => $access_token,
+         "logo"          => esc_url_raw($logo_url)
+    );
     
-    // Save token in WP options FIRST before collecting site data
+    // Save token in WP options so we don't resend multiple times
     if (!get_option("webivus_access_token")) {
         update_option("webivus_access_token", $access_token);
-        error_log("Webivus Connector: Token saved to WordPress options");
-        
-        // Now collect comprehensive site data (after token is stored)
-        $site_data = webivus_collect_site_data();
-        error_log("Webivus Connector: Site data collected, token_info: " . json_encode($site_data['token_info']));
-        
-        // Prepare data with validation
-        $body = array(
-            "site_url"      => esc_url_raw($site_url),
-            "admin_email"   => sanitize_email($admin_email),
-            "admin_username"=> sanitize_user($admin_username),
-            "access_token"  => $access_token,
-            "logo"          => esc_url_raw($logo_url),
-            "data"          => $site_data // Comprehensive site data
-        );
         
         $response = wp_remote_post(WEBIVUS_API_URL, array(
             "method"      => "POST",
@@ -504,8 +185,6 @@ function webivus_activate_plugin() {
             $response_code = wp_remote_retrieve_response_code($response);
             if ($response_code !== 200) {
                 error_log("Webivus Connector: Backend returned error code: " . $response_code);
-            } else {
-                error_log("Webivus Connector: Successfully connected to backend with site data");
             }
         }
     }
@@ -605,7 +284,7 @@ function webivus_admin_page() {
     }
     
     // Security: Verify nonce for form submission
-    if (isset($_POST["regenerate_token"]) || isset($_POST["connect_webivus"])) {
+    if (isset($_POST["regenerate_token"])) {
         if (!wp_verify_nonce($_POST['webivus_nonce'], 'webivus_regenerate_token')) {
             wp_die(__('Security check failed. Please refresh the page and try again.'));
         }
@@ -617,13 +296,9 @@ function webivus_admin_page() {
             return;
         }
         
-        // Collect fresh site data
-        $site_data = webivus_collect_site_data();
-        
         $body = array(
             "site_url"     => esc_url_raw($site_url),
-            "access_token" => $new_token,
-            "data"         => $site_data // Send fresh site data
+            "access_token" => $new_token
         );
         
         $response = wp_remote_post(WEBIVUS_UPDATE_TOKEN_URL, array(
@@ -649,12 +324,7 @@ function webivus_admin_page() {
                 $data = json_decode($response_body, true);
                 if (isset($data["success"]) && $data["success"]) {
                     update_option("webivus_access_token", $new_token);
-                    echo "<div class='notice notice-success'><p>✅ New token generated and site data updated successfully!</p></div>";
-                    
-                    // If it was a "Connect to Webivus" action, redirect to webapp
-                    if (isset($_POST["connect_webivus"])) {
-                        echo "<script>setTimeout(function() { window.open('http://localhost:3000/webapp?site_url=" . urlencode($site_url) . "', '_blank'); }, 2000);</script>";
-                    }
+                    echo "<div class='notice notice-success'><p>✅ New token generated successfully!</p></div>";
                 } else {
                     echo "<div class='notice notice-error'><p>❌ Failed: " . esc_html($data["message"] ?? "Unknown error from server") . "</p></div>";
                 }
@@ -667,7 +337,6 @@ function webivus_admin_page() {
     }
     
     $current_token = get_option("webivus_access_token");
-    $token_info = webivus_get_token_info($current_token);
     $nonce = wp_create_nonce('webivus_regenerate_token');
     ?>
     <div class="wrap">
@@ -675,10 +344,9 @@ function webivus_admin_page() {
         
         <div class="card" style="max-width: 800px;">
             <h2>Connection Status</h2>
-            <?php if ($current_token && !$token_info['expired']): ?>
+            <?php if ($current_token): ?>
                 <p><strong>Status:</strong> <span style="color: green;">✅ Connected</span></p>
                 <p><strong>Token Type:</strong> JWT (JSON Web Token)</p>
-                <p><strong>Days Remaining:</strong> <span style="color: <?php echo $token_info['days_remaining'] > 7 ? 'green' : ($token_info['days_remaining'] > 3 ? 'orange' : 'red'); ?>"><?php echo $token_info['days_remaining']; ?> days</span></p>
                 <p><strong>Current JWT Token:</strong></p>
                 <code style="background: #f1f1f1; padding: 10px; display: block; margin: 10px 0; word-break: break-all; font-family: monospace; font-size: 12px;">
                     <?php echo esc_html($current_token); ?>
@@ -695,115 +363,24 @@ function webivus_admin_page() {
                         <li><strong>Roles:</strong> <?php echo esc_html(implode(', ', $token_payload['roles'])); ?></li>
                     </ul>
                 <?php endif; ?>
-            <?php elseif ($current_token && $token_info['expired']): ?>
-                <p><strong>Status:</strong> <span style="color: red;">❌ Token Expired</span></p>
-                <p><strong>Expired At:</strong> <?php echo $token_info['expires_at'] ? esc_html(date('Y-m-d H:i:s', $token_info['expires_at'])) : 'Unknown'; ?></p>
-                <p style="color: red; font-weight: bold;">Your token has expired. Please regenerate it to continue using Webivus.</p>
             <?php else: ?>
                 <p><strong>Status:</strong> <span style="color: red;">❌ Not Connected</span></p>
-                <p>Please connect to Webivus to establish connection.</p>
+                <p>Please deactivate and reactivate the plugin to establish connection.</p>
             <?php endif; ?>
         </div>
         
         <div class="card" style="max-width: 800px; margin-top: 20px;">
             <h2>Actions</h2>
+            <form method="post" style="margin-bottom: 15px;">
+                <?php wp_nonce_field('webivus_regenerate_token', 'webivus_nonce'); ?>
+                <input type="submit" name="regenerate_token" class="button button-primary" value="Connect to Webivus">
+                <p class="description">Regenerate access token and update backend connection.</p>
+            </form>
             
-            <?php if ($current_token && !$token_info['expired']): ?>
-                <!-- Token is valid - show regenerate and dashboard buttons -->
-                <form method="post" style="margin-bottom: 15px;">
-                    <?php wp_nonce_field('webivus_regenerate_token', 'webivus_nonce'); ?>
-                    <input type="submit" name="regenerate_token" class="button button-primary" value="Regenerate Token">
-                    <p class="description">Generate a new access token and update site data.</p>
-                </form>
-                
-                <a href="http://localhost:3000/webapp?site_url=<?php echo urlencode(get_site_url()); ?>" target="_blank" rel="noopener noreferrer" class="button button-secondary">
-                     Open Webivus Dashboard
-                </a>
-                <p class="description">Open the Webivus dashboard in a new tab.</p>
-                
-            <?php elseif ($current_token && $token_info['expired']): ?>
-                <!-- Token is expired - show connect button -->
-                <form method="post" style="margin-bottom: 15px;">
-                    <?php wp_nonce_field('webivus_regenerate_token', 'webivus_nonce'); ?>
-                    <input type="submit" name="connect_webivus" class="button button-primary" value="Connect to Webivus">
-                    <p class="description">Generate a new access token and connect to Webivus (will redirect to dashboard).</p>
-                </form>
-                
-            <?php else: ?>
-                <!-- No token - show connect button -->
-                <form method="post" style="margin-bottom: 15px;">
-                    <?php wp_nonce_field('webivus_regenerate_token', 'webivus_nonce'); ?>
-                    <input type="submit" name="connect_webivus" class="button button-primary" value="Connect to Webivus">
-                    <p class="description">Generate access token and connect to Webivus (will redirect to dashboard).</p>
-                </form>
-            <?php endif; ?>
-        </div>
-        
-        <div class="card" style="max-width: 800px; margin-top: 20px;">
-            <h2>Site Data Overview</h2>
-            <p>This data is sent to the Webivus backend for dashboard display:</p>
-            
-            <?php 
-            $site_data = webivus_collect_site_data();
-            ?>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
-                <div>
-                    <h3>Content Statistics</h3>
-                    <ul>
-                        <li><strong>Posts:</strong> <?php echo $site_data['content_counts']['posts']; ?></li>
-                        <li><strong>Pages:</strong> <?php echo $site_data['content_counts']['pages']; ?></li>
-                        <li><strong>Comments:</strong> <?php echo $site_data['content_counts']['comments']; ?></li>
-                        <li><strong>Attachments:</strong> <?php echo $site_data['content_counts']['attachments']; ?></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3>User Statistics</h3>
-                    <ul>
-                        <li><strong>Total Users:</strong> <?php echo $site_data['user_counts']['total_users']; ?></li>
-                        <li><strong>Administrators:</strong> <?php echo $site_data['user_counts']['by_role']['administrator'] ?? 0; ?></li>
-                        <li><strong>Editors:</strong> <?php echo $site_data['user_counts']['by_role']['editor'] ?? 0; ?></li>
-                        <li><strong>Authors:</strong> <?php echo $site_data['user_counts']['by_role']['author'] ?? 0; ?></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3>Plugin Statistics</h3>
-                    <ul>
-                        <li><strong>Total Plugins:</strong> <?php echo $site_data['plugins']['total_plugins']; ?></li>
-                        <li><strong>Active Plugins:</strong> <?php echo $site_data['plugins']['active_plugins']; ?></li>
-                        <li><strong>Inactive Plugins:</strong> <?php echo $site_data['plugins']['inactive_plugins']; ?></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3>System Information</h3>
-                    <ul>
-                        <li><strong>WordPress Version:</strong> <?php echo $site_data['wp_version']; ?></li>
-                        <li><strong>PHP Version:</strong> <?php echo $site_data['php_version']; ?></li>
-                        <li><strong>Current Theme:</strong> <?php echo $site_data['themes']['current_theme']['name']; ?></li>
-                        <li><strong>Database Size:</strong> <?php echo $site_data['database']['db_size']; ?></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3>Token Information</h3>
-                    <ul>
-                        <li><strong>Has Token:</strong> <?php echo $site_data['token_info']['has_token'] ? 'Yes' : 'No'; ?></li>
-                        <li><strong>Is Expired:</strong> <?php echo $site_data['token_info']['is_expired'] ? 'Yes' : 'No'; ?></li>
-                        <li><strong>Generated At:</strong> <?php echo $site_data['token_info']['generated_at'] ?: 'N/A'; ?></li>
-                        <li><strong>Expires At:</strong> <?php echo $site_data['token_info']['expires_at'] ?: 'N/A'; ?></li>
-                        <li><strong>Days Remaining:</strong> <?php echo $site_data['token_info']['days_remaining']; ?></li>
-                        <li><strong>Username:</strong> <?php echo $site_data['token_info']['username']; ?></li>
-                    </ul>
-                </div>
-            </div>
-            
-            <details style="margin-top: 20px;">
-                <summary style="cursor: pointer; font-weight: bold;">View Complete Site Data (JSON)</summary>
-                <pre style="background: #f1f1f1; padding: 15px; margin: 10px 0; overflow-x: auto; font-size: 12px;"><?php echo esc_html(json_encode($site_data, JSON_PRETTY_PRINT)); ?></pre>
-            </details>
+            <a href="http://localhost:3000/webapp" target="_blank" rel="noopener noreferrer" class="button button-secondary">
+                 Open Webivus Dashboard
+            </a>
+            <p class="description">Open the Webivus dashboard in a new tab.</p>
         </div>
         
         <div class="card" style="max-width: 800px; margin-top: 20px;">
@@ -1244,7 +821,7 @@ function webivus_generate_jwt_endpoint($request) {
         'user_email' => $user->user_email,
         'user_nicename' => $user->user_nicename,
         'user_display_name' => $user->display_name,
-        'expires_in' => 2592000 // 30 days
+        'expires_in' => 86400 // 24 hours
     ), 200);
 }
 

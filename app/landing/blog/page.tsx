@@ -1,9 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { FiShare } from "react-icons/fi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import { FaTwitter, FaInstagram, FaLinkedinIn } from "react-icons/fa";
-import { MdKeyboardArrowDown } from "react-icons/md";
 
 const BlogPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);

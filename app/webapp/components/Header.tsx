@@ -1,10 +1,15 @@
 "use client";
+import { setBasicdata } from "@/app/redux/slices/basicDetails";
+import { RootState } from "@/app/redux/store";
+import { useAuthContext } from "@/app/utils/auth";
+import { NEXT_PUBLIC_API } from "@/app/utils/config";
 import axios from "axios";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { FaMobileAlt } from "react-icons/fa";
 import { IoIosTabletPortrait, IoMdLaptop } from "react-icons/io";
+import { useDispatch, useSelector } from "react-redux";
 
 interface Site {
   _id: string;
@@ -17,13 +22,17 @@ const Header = () => {
   const path = usePathname();
   const [sites, setSites] = useState([]);
   const [currentsite, setCurrentsite] = useState("");
-  const [tab, setTab] = useState("tab");
+  // const [tab, setTab] = useState("tab");
   const [currentsitename, setCurrentsitename] = useState("tab");
   const [currentsitedata, setCurrentsitedata] = useState({});
+  const { data } = useAuthContext();
+  const tab = useSelector((state: RootState) => state.basicDetails.data.tab);
+
+  const dispatch = useDispatch();
   const getSites = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:7002/api/getUserSites/web@gmail.com"
+        `${NEXT_PUBLIC_API}/getUserSites/${data?._id}`
       );
 
       setSites(res?.data?.sites);
@@ -34,8 +43,10 @@ const Header = () => {
   useEffect(() => {
     setCurrentsite(sessionStorage.getItem("siteId") || "");
     setCurrentsitename(sessionStorage.getItem("siteurl") || "");
-    getSites();
+    if(data)
+   { getSites();}
   }, []);
+
   return (
     <div className="h-[60px]">
       <div className="h-[100%] w-full flex px-6 gap-4 py-1 justify-center items-center ">
@@ -90,7 +101,8 @@ const Header = () => {
           <div className=" flex items-center gap-2 border border-[#888] p-1  rounded-full">
             <button
               onClick={() => {
-                setTab("phone");
+                // setTab("phone");
+                dispatch(setBasicdata({ tab: "phone" }));
                 sessionStorage.setItem("tab", "phone");
               }}
               className={`p-2 rounded-full ${
@@ -101,7 +113,9 @@ const Header = () => {
             </button>
             <button
               onClick={() => {
-                setTab("tab");
+                // setTab("tab");
+                dispatch(setBasicdata({ tab: "tab" }));
+
                 sessionStorage.setItem("tab", "tab");
               }}
               className={`p-2 rounded-full ${
@@ -125,7 +139,9 @@ const Header = () => {
           </div> */}
             <button
               onClick={() => {
-                setTab("laptop");
+                // setTab("laptop");
+                dispatch(setBasicdata({ tab: "laptop" }));
+
                 sessionStorage.setItem("tab", "laptop");
               }}
               className={`p-2 rounded-full ${

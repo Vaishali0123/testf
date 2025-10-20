@@ -20,27 +20,27 @@ const Page: React.FC = () => {
   const supportSections = [
     {
       icon: FiHelpCircle,
-      title: "FAQs",
+      title: "FAQS & Docs",
       description:
-        "Find answers to frequently asked questions from our customers.",
+        "  Learn how to use Webivus with our documentation, FAQS, and tutorials. Button text: Read Docs.",
       buttonText: "Create a ticket",
       buttonAction: () => console.log("Create ticket"),
       iconBg: "bg-pink-500",
     },
     {
       icon: FiUsers,
-      title: "Community",
+      title: " Ask the community",
       description:
-        "Connect with our community ask questions and solve problems.",
+        "Connect with our community, ask questions and get instant helps from Webivus users on discord. Button text: Ask questions.",
       buttonText: "Submit a question",
       buttonAction: () => console.log("Submit question"),
       iconBg: "bg-purple-500",
     },
     {
       icon: FiHeadphones,
-      title: "Support desk",
+      title: " Webivus Support",
       description:
-        "One-to-one professional technical support for corporate customers.",
+        "One-to-one professional technical support for paying users. Button Text: Send a message.",
       buttonText: "Send a message",
       buttonAction: () => console.log("Send message"),
       iconBg: "bg-pink-500",

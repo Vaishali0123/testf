@@ -1,6 +1,6 @@
 "use client";
-
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { FaRegCheckCircle } from "react-icons/fa";
 
 const plans = [
   {
@@ -51,102 +51,168 @@ const plans = [
 ];
 
 const Pricing = () => {
+  const [visibleCards, setVisibleCards] = useState<number[]>([]);
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === headerRef.current) {
+            setHeaderVisible(entry.isIntersecting);
+          } else {
+            const cardIndex = cardRefs.current.indexOf(
+              entry.target as HTMLElement
+            );
+            if (cardIndex !== -1 && entry.isIntersecting) {
+              setVisibleCards((prev) => [...new Set([...prev, cardIndex])]);
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      }
+    );
+
+    if (headerRef.current) {
+      observer.observe(headerRef.current);
+    }
+
+    cardRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className=" text-white py-16 scale-95 px-6">
+    <section className="text-white py-8 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8 min-h-screen bg-black">
       {/* Header */}
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold">A plan for every need.</h2>
-        <p className="text-gray-400 mt-2 max-w-2xl mx-auto">
+      <div
+        ref={headerRef}
+        className={`text-center mb-8 sm:mb-12 lg:mb-16 transition-all duration-1000 ease-out ${
+          headerVisible
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-10"
+        }`}
+      >
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold bg-gradient-to-r from-white via-slate-50 to-slate-600 bg-clip-text text-transparent">
+          A plan for every need.
+        </h2>
+        <p className="text-gray-400 mt-2 sm:mt-4 max-w-xs sm:max-w-2xl mx-auto text-sm sm:text-base lg:text-lg px-4 sm:px-0">
           Whether you are just starting or require massive scale, we have a
           solution.
         </p>
       </div>
 
       {/* Plans */}
-      <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto">
         {plans.map((plan, idx) => (
           <div
             key={idx}
-            className={`p-6 rounded-2xl border ${
-              plan.highlight
-                ? "bg-gradient-to-b from-purple-800/30  to-black border-purple-600"
-                : "bg-gradient-to-b from-[#181818] mt-10 to-black border-gray-700"
+            ref={(el) => {
+              cardRefs.current[idx] = el;
+            }}
+            className={`transform transition-all duration-700 ease-out ${
+              visibleCards.includes(idx)
+                ? "opacity-100 translate-y-0 scale-100"
+                : "opacity-0 translate-y-16 scale-95"
             }`}
+            style={{
+              transitionDelay: `${idx * 150}ms`,
+              willChange: "transform, opacity",
+            }}
           >
-            {/* Badge for PRO */}
-            {plan.subtitle && (
-              <span className="inline-block mb-3 text-xs font-semibold px-3 py-1 bg-purple-700 text-white rounded-full">
-                {plan.subtitle}
-              </span>
-            )}
-            <h3 className="text-lg font-semibold">{plan.title}</h3>
-            <p className="text-3xl font-bold mt-2">{plan.price}</p>
-            <p className="text-sm text-gray-400 mt-2">{plan.desc}</p>
-
-            {/* Button */}
-            <button
-              className={`mt-6 w-full py-2 rounded-full font-semibold ${
+            <div
+              className={`p-0.5 rounded-2xl sm:rounded-3xl relative group hover:scale-105 transition-all duration-300 ${
                 plan.highlight
-                  ? "bg-white text-black hover:bg-gray-200"
-                  : "bg-gray-800 hover:bg-gray-700"
+                  ? "bg-gradient-to-b from-[#f94cff3e] via-[#f94cff0d] to-[#f94cff06] shadow-lg shadow-purple-500/20"
+                  : ""
               }`}
             >
-              {plan.button}
-            </button>
+              <div
+                className={`p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl h-full relative  ${
+                  plan.highlight
+                    ? "bg-gradient-to-b from-[#030303ce] via-[#f94cff0d] to-[#f94cff06]"
+                    : "bg-gradient-to-b from-[#181818] to-black border border-gray-700/50"
+                } ${!plan.highlight ? "mt-0 sm:mt-6 lg:mt-10" : ""}`}
+              >
+                {/* Animated background gradient */}
+                {plan.highlight && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-pink-500/5 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                )}
 
-            {/* Features */}
-            <ul className="mt-6 space-y-2 text-sm text-gray-300">
-              {plan.features.map((f, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-green-400">✔</span> {f}
-                </li>
-              ))}
-            </ul>
+                {/* Badge for PRO */}
+                {plan.subtitle && (
+                  <span className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 text-xs font-semibold px-3 py-1 bg-gradient-to-r from-[#f94cff] to-[#c44cff] text-white rounded-full shadow-lg animate-pulse">
+                    {plan.subtitle}
+                  </span>
+                )}
+
+                <div className="relative z-10">
+                  <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold">
+                    {plan.title}
+                  </h3>
+
+                  <div className="flex items-baseline gap-2 mt-2 sm:mt-4">
+                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                      {plan.price}
+                    </p>
+                    {plan.price !== "Custom" && plan.price !== "$0" && (
+                      <span className="text-gray-400 text-sm">/month</span>
+                    )}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-gray-400 mt-2 sm:mt-4 leading-relaxed">
+                    {plan.desc}
+                  </p>
+
+                  {/* Button */}
+                  <button
+                    className={`mt-4 sm:mt-6 w-full py-2.5 sm:py-3 rounded-full font-semibold text-sm sm:text-base transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                      plan.highlight
+                        ? "bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-gray-200 shadow-lg hover:shadow-xl"
+                        : "bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 border border-gray-600 hover:border-gray-500"
+                    }`}
+                  >
+                    {plan.button}
+                  </button>
+
+                  {/* Features */}
+                  <ul className="mt-4 sm:mt-6 space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-300">
+                    {plan.features.map((feature, i) => (
+                      <li
+                        key={i}
+                        className={`flex items-center gap-2 sm:gap-3 transform transition-all duration-500 ${
+                          visibleCards.includes(idx)
+                            ? "translate-x-0 opacity-100"
+                            : "translate-x-4 opacity-0"
+                        }`}
+                        style={{ transitionDelay: `${idx * 150 + i * 50}ms` }}
+                      >
+                        <FaRegCheckCircle />
+                        <span className="leading-relaxed">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Dedicated Support + Add-on */}
-      <div className="flex w-[70%] bg-gradient-to-tl from-[#d9d9d900] via-[#7373730d] to-[#73737333] border rounded-3xl   mx-auto mt-4">
-        {/* Dedicated Support */}
-        <div className="w-[70%] p-2 rounded-l-2xl">
-          <div className="border p-6 rounded-l-2xl">
-            <h3 className="text-lg font-semibold">Dedicated Support</h3>
-            <p className="text-sm text-gray-400 mt-2">
-              We are here to help get you started with a dedicated support
-              engineer who can assist with scoping your test models and getting
-              them deployed.
-            </p>
-            <p className="text-sm text-gray-300 mt-4 font-semibold">
-              What&apos;s Included
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-300">
-              <li>✔ Shared Slack Channel</li>
-              <li>✔ Prompt Engineering Guidance</li>
-              <li>✔ Dedicated Support Engineer</li>
-              <li>✔ Context Sourcing Guidance</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Add-on */}
-        <div className="p-2 w-[30%] rounded-r-2xl bg-gradient-to-b from-[#181818] to-black  border-gray-700 flex flex-col justify-between">
-          <div className=" border flex flex-col items-center p-6 rounded-r-2xl h-full">
-            <div>
-              <span className="inline-block mb-3 text-xs font-semibold px-3 py-1 bg-gray-700 rounded-full">
-                Add On
-              </span>
-              <h3 className="text-3xl font-bold">$750</h3>
-              <p className="text-sm text-gray-400">monthly</p>
-            </div>
-            <button className="mt-6 w-full py-2 rounded-full font-semibold bg-gray-800 hover:bg-gray-700">
-              Request Access
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              No long term contract obligations.
-            </p>
-          </div>
-        </div>
+      {/* Decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-0 w-32 sm:w-64 h-32 sm:h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div
+          className="absolute bottom-1/4 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        ></div>
       </div>
     </section>
   );

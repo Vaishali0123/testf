@@ -865,6 +865,9 @@ function webivus_verify_admin_token($token) {
         return false;
     }
     
+    // Set the current user for WordPress context
+    wp_set_current_user($payload['user_id']);
+    
     error_log("Webivus Plugin API: JWT token verification successful for user: " . $payload['username']);
     return true;
 }
@@ -1102,14 +1105,19 @@ function webivus_handle_plugin_management_api() {
     
     // Get input data - support both JSON and form data
     $input = file_get_contents('php://input');
+    error_log("Webivus Plugin: Raw input received: " . $input);
+    
     $data = json_decode($input, true);
+    error_log("Webivus Plugin: JSON decoded data: " . print_r($data, true));
     
     // If JSON parsing failed, try form data
     if (!$data && !empty($_POST)) {
         $data = $_POST;
+        error_log("Webivus Plugin: Using POST data: " . print_r($data, true));
     }
     
     if (!$data) {
+        error_log("Webivus Plugin: No valid data received");
         wp_die(json_encode(array('success' => false, 'message' => 'Invalid JSON data or form data')));
     }
     
@@ -1166,6 +1174,34 @@ function webivus_handle_plugin_management_api() {
             $result = webivus_deactivate_plugin_by_slug($slug);
             wp_die(json_encode($result));
             
+        case 'list_themes':
+            $themes = webivus_get_installed_themes();
+            wp_die(json_encode(array('success' => true, 'data' => $themes)));
+            
+        case 'install_theme':
+            $slug = isset($data['slug']) ? sanitize_text_field($data['slug']) : '';
+            if (empty($slug)) {
+                wp_die(json_encode(array('success' => false, 'message' => 'Theme slug is required')));
+            }
+            $result = webivus_install_theme($slug);
+            wp_die(json_encode($result));
+            
+        case 'activate_theme':
+            $slug = isset($data['slug']) ? sanitize_text_field($data['slug']) : '';
+            if (empty($slug)) {
+                wp_die(json_encode(array('success' => false, 'message' => 'Theme slug is required')));
+            }
+            $result = webivus_activate_theme_by_slug($slug);
+            wp_die(json_encode($result));
+            
+        case 'delete_theme':
+            $slug = isset($data['slug']) ? sanitize_text_field($data['slug']) : '';
+            if (empty($slug)) {
+                wp_die(json_encode(array('success' => false, 'message' => 'Theme slug is required')));
+            }
+            $result = webivus_delete_theme_by_slug($slug);
+            wp_die(json_encode($result));
+            
         case 'test':
             // Test endpoint to verify token and connection
             $stored_token = get_option("webivus_access_token");
@@ -1180,10 +1216,392 @@ function webivus_handle_plugin_management_api() {
                     'tokens_match' => hash_equals($stored_token, $token)
                 )
             )));
+        
+        // ===== Settings & Permalinks Management =====
+        case 'update_option':
+            $option = isset($data['option']) ? sanitize_text_field($data['option']) : '';
+            $value  = isset($data['value']) ? $data['value'] : null;
+            if (empty($option)) {
+                wp_die(json_encode(array('success' => false, 'message' => 'Option name is required')));
+            }
+            update_option($option, $value);
+            wp_die(json_encode(array('success' => true, 'message' => 'Option updated', 'result' => array('option' => $option, 'value' => $value))));
+        
+        case 'get_settings':
+            $sections = array('general','writing','reading','discussion','media','permalink','privacy');
+            $result = array();
+            foreach ($sections as $sec) {
+                $result[$sec] = webivus_get_settings_section($sec);
+            }
+            wp_die(json_encode(array('success' => true, 'result' => $result)));
+
+        case 'update_settings':
+            $section = isset($data['section']) ? sanitize_text_field($data['section']) : '';
+            $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : array();
+            if (empty($section)) {
+                wp_die(json_encode(array('success' => false, 'message' => 'Section is required')));
+            }
+            $resp = webivus_update_settings_section($section, $payload);
+            wp_die(json_encode($resp));
+
+        case 'get_general':
+            wp_die(json_encode(array('success' => true, 'result' => webivus_get_settings_section('general'))));
+        case 'update_general':
+            try {
+                error_log("Webivus Plugin: Processing update_general request");
+                error_log("Webivus Plugin: Raw data: " . print_r($data, true));
+                
+                $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : array();
+                error_log("Webivus Plugin: Extracted payload: " . print_r($payload, true));
+                
+                $result = webivus_update_settings_section('general', $payload);
+                error_log("Webivus Plugin: Update result: " . print_r($result, true));
+                
+                wp_die(json_encode($result));
+            } catch (Exception $e) {
+                error_log("Webivus Plugin: Exception in update_general case: " . $e->getMessage());
+                wp_die(json_encode(array('success' => false, 'message' => 'Error: ' . $e->getMessage())));
+            }
+
+        case 'get_writing':
+            wp_die(json_encode(array('success' => true, 'result' => webivus_get_settings_section('writing'))));
+        case 'update_writing':
+            $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : array();
+            wp_die(json_encode(webivus_update_settings_section('writing', $payload)));
+
+        case 'get_reading':
+            wp_die(json_encode(array('success' => true, 'result' => webivus_get_settings_section('reading'))));
+        case 'update_reading':
+            $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : array();
+            wp_die(json_encode(webivus_update_settings_section('reading', $payload)));
+
+        case 'get_discussion':
+            wp_die(json_encode(array('success' => true, 'result' => webivus_get_settings_section('discussion'))));
+        case 'update_discussion':
+            $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : array();
+            wp_die(json_encode(webivus_update_settings_section('discussion', $payload)));
+
+        case 'get_media':
+            wp_die(json_encode(array('success' => true, 'result' => webivus_get_settings_section('media'))));
+        case 'update_media':
+            $payload = isset($data['data']) && is_array($data['data']) ? $data['data'] : array();
+            wp_die(json_encode(webivus_update_settings_section('media', $payload)));
+
+        case 'get_permalink':
+            wp_die(json_encode(array('success' => true, 'result' => webivus_get_permalink_info())));
+        case 'update_permalink':
+            $structure = isset($data['structure']) ? $data['structure'] : null;
+            $preset    = isset($data['preset']) ? sanitize_text_field($data['preset']) : null;
+            wp_die(json_encode(webivus_update_permalink($structure, $preset)));
+
+        case 'get_privacy':
+            $page_id = get_option('wp_page_for_privacy_policy');
+            wp_die(json_encode(array('success' => true, 'result' => array('page_id' => intval($page_id)))));
+        case 'set_privacy':
+            $page_id = isset($data['page_id']) ? intval($data['page_id']) : 0;
+            if ($page_id <= 0) {
+                wp_die(json_encode(array('success' => false, 'message' => 'Invalid page_id')));
+            }
+            update_option('wp_page_for_privacy_policy', $page_id);
+            wp_die(json_encode(array('success' => true, 'message' => 'Privacy policy page set', 'result' => array('page_id' => $page_id))));
             
         default:
-            wp_die(json_encode(array('success' => false, 'message' => 'Invalid action. Supported actions: list, install, activate, deactivate, test')));
+            wp_die(json_encode(array('success' => false, 'message' => 'Invalid action. Supported actions: list, install, activate, deactivate, test, list_themes, install_theme, activate_theme, delete_theme')));
     }
+}
+
+/**
+ * Settings Helpers
+ */
+function webivus_settings_sections_def() {
+    return array(
+        'general' => array('blogname','blogdescription','siteurl','home','admin_email','timezone_string','date_format','time_format','start_of_week','WPLANG','use_smilies'),
+        'writing' => array('default_category','default_post_format','use_balanceTags','use_smilies'),
+        'reading' => array('show_on_front','page_on_front','page_for_posts','posts_per_page','posts_per_rss','rss_use_excerpt'),
+        'discussion' => array('default_comment_status','comment_previously_approved','comment_moderation','comment_max_links','moderation_keys','blacklist_keys','show_avatars','avatar_rating','avatar_default','thread_comments','thread_comments_depth','page_comments','comments_per_page','default_comments_page','comment_order'),
+        'media' => array('thumbnail_size_w','thumbnail_size_h','thumbnail_crop','medium_size_w','medium_size_h','medium_large_size_w','large_size_w','large_size_h','uploads_use_yearmonth_folders'),
+        'permalink' => array('permalink_structure','category_base','tag_base'),
+        'privacy' => array('wp_page_for_privacy_policy'),
+    );
+}
+
+function webivus_get_settings_section($section) {
+    $defs = webivus_settings_sections_def();
+    if (!isset($defs[$section])) return array();
+    $result = array();
+    foreach ($defs[$section] as $opt) {
+        $result[$opt] = get_option($opt);
+    }
+    return $result;
+}
+
+function webivus_update_settings_section($section, $data) {
+    try {
+        error_log("Webivus Plugin: Starting update_settings_section for section: " . $section);
+        error_log("Webivus Plugin: Data received: " . print_r($data, true));
+        
+        $defs = webivus_settings_sections_def();
+        if (!isset($defs[$section])) {
+            error_log("Webivus Plugin: Invalid section: " . $section);
+            return array('success' => false, 'message' => 'Invalid section');
+        }
+        
+        if (!is_array($data)) $data = array();
+        
+        foreach ($data as $key => $val) {
+            if (!in_array($key, $defs[$section])) {
+                error_log("Webivus Plugin: Skipping invalid key: " . $key);
+                continue;
+            }
+            
+            error_log("Webivus Plugin: Updating option: " . $key . " = " . $val);
+            $result = update_option($key, $val);
+            error_log("Webivus Plugin: Update result for " . $key . ": " . ($result ? 'success' : 'failed'));
+        }
+        
+        error_log("Webivus Plugin: Settings update completed successfully");
+        return array('success' => true, 'message' => 'Settings updated');
+    } catch (Exception $e) {
+        error_log("Webivus Plugin: Exception in update_settings_section: " . $e->getMessage());
+        return array('success' => false, 'message' => 'Error updating settings: ' . $e->getMessage());
+    }
+}
+
+function webivus_get_permalink_info() {
+    return array(
+        'permalink_structure' => get_option('permalink_structure'),
+        'category_base' => get_option('category_base'),
+        'tag_base' => get_option('tag_base'),
+    );
+}
+
+function webivus_update_permalink($structure, $preset = null) {
+    global $wp_rewrite;
+    if ($preset) {
+        switch ($preset) {
+            case 'plain':
+                $structure = '';
+                break;
+            case 'day':
+                $structure = '/%year%/%monthnum%/%day%/%postname%/';
+                break;
+            case 'month':
+                $structure = '/%year%/%monthnum%/%postname%/';
+                break;
+            case 'numeric':
+                $structure = '/archives/%post_id%';
+                break;
+            case 'postname':
+                $structure = '/%postname%/';
+                break;
+        }
+    }
+    if ($structure === null) {
+        $structure = get_option('permalink_structure');
+    }
+    update_option('permalink_structure', $structure);
+    if (isset($wp_rewrite)) {
+        $wp_rewrite->set_permalink_structure($structure);
+    }
+    flush_rewrite_rules();
+    return array('success' => true, 'message' => 'Permalink structure updated', 'result' => webivus_get_permalink_info());
+}
+
+/**
+ * Get all installed themes with their status
+ */
+function webivus_get_installed_themes() {
+    $available_themes = wp_get_themes();
+    $current_theme = get_stylesheet();
+    
+    $themes = array();
+    
+    foreach ($available_themes as $theme_slug => $theme_obj) {
+        $is_active = ($theme_slug === $current_theme);
+        
+        $themes[] = array(
+            'slug' => $theme_slug,
+            'name' => $theme_obj->get('Name'),
+            'version' => $theme_obj->get('Version'),
+            'description' => $theme_obj->get('Description'),
+            'author' => $theme_obj->get('Author'),
+            'is_active' => $is_active,
+            'screenshot' => $theme_obj->get_screenshot(),
+            'template' => $theme_obj->get('Template'),
+            'text_domain' => $theme_obj->get('TextDomain'),
+            'theme_uri' => $theme_obj->get('ThemeURI'),
+            'author_uri' => $theme_obj->get('AuthorURI'),
+        );
+    }
+    
+    return $themes;
+}
+
+/**
+ * Install theme by slug from WordPress.org repository
+ */
+function webivus_install_theme($slug) {
+    // Check if user has install_themes capability
+    $user_has_permission = false;
+    
+    // Try current user first (for admin interface)
+    if (is_user_logged_in() && current_user_can('install_themes')) {
+        $user_has_permission = true;
+    }
+    
+    // If no current user, check if this is an API request with valid JWT
+    if (!$user_has_permission && defined('DOING_AJAX') && DOING_AJAX) {
+        // For API requests, we'll check the JWT token in the calling function
+        // If we reach here, the token was already validated
+        $user_has_permission = true;
+    }
+    
+    if (!$user_has_permission) {
+        return array('success' => false, 'message' => 'Insufficient permissions to install themes');
+    }
+    
+    if (!function_exists('download_url')) {
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+    }
+    if (!function_exists('WP_Upgrader')) {
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+    }
+    if (!function_exists('themes_api')) {
+        require_once ABSPATH . 'wp-admin/includes/theme-install.php';
+    }
+    
+    // Get theme information from WordPress.org
+    $api = themes_api('theme_information', array(
+        'slug' => $slug,
+        'fields' => array(
+            'sections' => false,
+            'tags' => false,
+            'ratings' => false,
+            'downloaded' => false,
+            'last_updated' => false,
+            'added' => false,
+            'compatibility' => false,
+            'homepage' => false,
+            'donate_link' => false,
+        ),
+    ));
+    
+    if (is_wp_error($api)) {
+        return array('success' => false, 'message' => 'Theme not found in WordPress.org repository: ' . $api->get_error_message());
+    }
+    
+    // Check if theme is already installed
+    $installed_themes = wp_get_themes();
+    if (isset($installed_themes[$slug])) {
+        return array('success' => false, 'message' => 'Theme is already installed');
+    }
+    
+    // Download and install the theme
+    $upgrader = new Theme_Upgrader();
+    $result = $upgrader->install($api->download_link);
+    
+    if (is_wp_error($result)) {
+        return array('success' => false, 'message' => 'Installation failed: ' . $result->get_error_message());
+    }
+    
+    if ($result === false) {
+        return array('success' => false, 'message' => 'Installation failed: Unknown error');
+    }
+    
+    return array('success' => true, 'message' => 'Theme installed successfully');
+}
+
+/**
+ * Activate theme by slug
+ */
+function webivus_activate_theme_by_slug($slug) {
+    // Check if user has switch_themes capability
+    $user_has_permission = false;
+    
+    // Try current user first (for admin interface)
+    if (is_user_logged_in() && current_user_can('switch_themes')) {
+        $user_has_permission = true;
+    }
+    
+    // If no current user, check if this is an API request with valid JWT
+    if (!$user_has_permission && defined('DOING_AJAX') && DOING_AJAX) {
+        // For API requests, we'll check the JWT token in the calling function
+        // If we reach here, the token was already validated
+        $user_has_permission = true;
+    }
+    
+    if (!$user_has_permission) {
+        return array('success' => false, 'message' => 'Insufficient permissions to activate themes');
+    }
+    
+    $installed_themes = wp_get_themes();
+    
+    if (!isset($installed_themes[$slug])) {
+        return array('success' => false, 'message' => 'Theme not found');
+    }
+    
+    // Check if already active
+    if (get_stylesheet() === $slug) {
+        return array('success' => false, 'message' => 'Theme is already active');
+    }
+    
+    // Switch to the theme
+    switch_theme($slug);
+    
+    // Verify the switch was successful
+    if (get_stylesheet() === $slug) {
+        return array('success' => true, 'message' => 'Theme activated successfully');
+    } else {
+        return array('success' => false, 'message' => 'Theme activation failed');
+    }
+}
+
+/**
+ * Delete theme by slug
+ */
+function webivus_delete_theme_by_slug($slug) {
+    // Check if user has delete_themes capability
+    $user_has_permission = false;
+    
+    // Try current user first (for admin interface)
+    if (is_user_logged_in() && current_user_can('delete_themes')) {
+        $user_has_permission = true;
+    }
+    
+    // If no current user, check if this is an API request with valid JWT
+    if (!$user_has_permission && defined('DOING_AJAX') && DOING_AJAX) {
+        // For API requests, we'll check the JWT token in the calling function
+        // If we reach here, the token was already validated
+        $user_has_permission = true;
+    }
+    
+    if (!$user_has_permission) {
+        return array('success' => false, 'message' => 'Insufficient permissions to delete themes');
+    }
+    
+    $installed_themes = wp_get_themes();
+    
+    if (!isset($installed_themes[$slug])) {
+        return array('success' => false, 'message' => 'Theme not found');
+    }
+    
+    // Check if it's the current theme
+    if (get_stylesheet() === $slug) {
+        return array('success' => false, 'message' => 'Cannot delete the currently active theme');
+    }
+    
+    // Delete the theme
+    if (!function_exists('delete_theme')) {
+        require_once ABSPATH . 'wp-admin/includes/theme.php';
+    }
+    
+    $result = delete_theme($slug);
+    
+    if (is_wp_error($result)) {
+        return array('success' => false, 'message' => 'Deletion failed: ' . $result->get_error_message());
+    }
+    
+    return array('success' => true, 'message' => 'Theme deleted successfully');
 }
 
 /**
@@ -1207,6 +1625,53 @@ add_action('rest_api_init', function() {
         )
     ));
 });
+
+/**
+ * Add JWT authentication for REST API
+ */
+add_filter('determine_current_user', function($user_id) {
+    // If user is already determined, return it
+    if ($user_id) {
+        return $user_id;
+    }
+
+    // Check if this is a REST API request
+    if (!defined('REST_REQUEST') || !REST_REQUEST) {
+        return $user_id;
+    }
+
+    // Get the authorization header
+    $auth_header = null;
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $auth_header = $_SERVER['HTTP_AUTHORIZATION'];
+    } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $auth_header = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    } elseif (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (isset($headers['Authorization'])) {
+            $auth_header = $headers['Authorization'];
+        } elseif (isset($headers['authorization'])) {
+            $auth_header = $headers['authorization'];
+        }
+    }
+
+    if (!$auth_header) {
+        return $user_id;
+    }
+
+    // Extract Bearer token
+    if (strpos($auth_header, 'Bearer ') === 0) {
+        $token = substr($auth_header, 7);
+        
+        // Verify JWT token
+        $payload = webivus_verify_jwt_token($token);
+        if ($payload && isset($payload['user_id'])) {
+            return $payload['user_id'];
+        }
+    }
+
+    return $user_id;
+}, 10);
 
 function webivus_generate_jwt_endpoint($request) {
     $username = $request->get_param('username');

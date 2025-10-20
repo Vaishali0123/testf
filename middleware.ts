@@ -10,7 +10,7 @@ const protectedRoutes = [
 ];
 
 // List of auth pages
-const authRoutes = ["/auth", "/Signup"];
+const authRoutes = ["/auth"];
 
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get("authToken")?.value;
@@ -18,7 +18,7 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // If user is logged in and tries to access login/signup → redirect to /webapp
-  if (token && authRoutes.includes(pathname.toLowerCase())) {
+if (token && (pathname.toLowerCase() === "/auth" || pathname.toLowerCase() === "/signup")) {
     return NextResponse.redirect(new URL("/webapp", req.url));
   }
 
@@ -34,8 +34,8 @@ export async function middleware(req: NextRequest) {
 // Specify which paths the middleware applies to
 export const config = {
   matcher: [
+  
     "/auth",
-    "/Signup",
     "/webapp",
     "/plugin",
     "/plugincurrent",

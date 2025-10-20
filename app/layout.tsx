@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { AuthContextProvider } from "./utils/auth";
+import ReduxProvider from "./redux/ReduxProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,8 +36,12 @@ export default function RootLayout({
       >
         {/* <TopBar /> */}
         {/* <div className="h-[1px] bg-[radial-gradient(circle_at_center,_#959595,_#1e1e1e)]"></div> */}
-
-        <div className="w-full">{children}</div>
+  <AuthContextProvider>
+        <div className="w-full">
+           <ReduxProvider>
+          {children}
+          </ReduxProvider></div>
+        </AuthContextProvider>
       </body>
     </html>
   );

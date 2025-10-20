@@ -1,7 +1,11 @@
 "use client";
+import { useAuthContext } from "@/app/utils/auth";
 import { NEXT_PUBLIC_API } from "@/app/utils/config";
 import axios from "axios";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { BsThreeDotsVertical } from "react-icons/bs";
 import { IoIosAdd } from "react-icons/io";
 
 interface Site {
@@ -11,14 +15,25 @@ interface Site {
   site_url: string;
   logo: string;
   title: string;
+  data: {
+    site_id: string;
+    site_name: string;
+    url: string;
+    site_url: string;
+    logo: string;
+    title: string;
+  }
 }
 
 const Page = () => {
+  const router = useRouter();
   const [sites, setSites] = useState([]);
   const [addproject, setAddproject] = useState(false);
   const [siteUrl, setSiteUrl] = useState("");
-  const email = "web@gmail.com";
+  const { data } = useAuthContext();
+
   const handleConnect = async () => {
+    if (!data) return alert("User data is missing");
     if (!siteUrl) return alert("Please enter a site URL");
 
     try {
@@ -36,13 +51,16 @@ const Page = () => {
       const pluginsUrl = `${cleanUrl}/wp-admin/plugins.php`;
 
       // Save only clean site_url in DB
-      // const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
-      //   email,
-      //   site_url: cleanUrl,
-      // });
+      const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
+        email: data.user.email || data.email,
+        site_url: cleanUrl,
+      });
 
-      // if (!res?.data?.success) return alert("Something went wrong");
-
+      if (!res?.data?.success) return alert("Something went wrong");
+      setAddproject(false);
+      if (data) {
+        getSites();
+      }
       // Open plugins page in new tab
       window.open(pluginsUrl, "_blank");
     } catch (err) {
@@ -50,12 +68,13 @@ const Page = () => {
       alert("Invalid site URL");
     }
   };
+
   const getSites = async () => {
     try {
       const res = await axios.get(
-        `${NEXT_PUBLIC_API}/getUserSites/web@gmail.com`
+        `${NEXT_PUBLIC_API}/getUserSites/${data?.user?._id || data?._id}`
       );
-      console.log(res?.data, "jnj");
+     
       if (res?.data?.success) {
         setSites(res?.data?.sites);
       }
@@ -64,8 +83,10 @@ const Page = () => {
     }
   };
   useEffect(() => {
-    getSites();
-  }, []);
+    if (data) {
+      getSites();
+    }
+  }, [data]);
   return (
     <div className="flex w-full overflow-hidden h-full border">
       <div className="w-full  flex flex-wrap gap-4 p-4">
@@ -80,6 +101,7 @@ const Page = () => {
           sites.map((site: Site, index) => (
             <div
               key={index}
+             
               className="w-[320px] h-[200px] bg-gradient-to-bl flex items-center justify-center flex-col from-[#d9d9d900] via-[#7373730d] to-[#737373]   border hover:scale-105 duration-300"
             >
               <img
@@ -87,13 +109,25 @@ const Page = () => {
                 alt="pic"
                 className="w-full h-[70%] object-cover"
               />
-              <div className="w-full h-[30%] px-2 flex flex-col justify-center">
-                <div className="font-bold text-[#bcbcbc]">
-                  {site?.title || "Site Title"}
+              <div className="w-full h-[30%] flex flex-row ">
+                <div  onClick={() => {
+                sessionStorage.setItem("siteId", site._id);
+                sessionStorage.setItem("siteurl", site.site_url);
+                router.push("/webapp");
+              }} className="w-[85%] h-[100%]  px-2 flex flex-col justify-center">
+                   <div className="font-bold text-[#bcbcbc]">
+                  {site?.data?.site_name || "Site Title"}
                 </div>
                 <div className="text-[12px]">Lets start editing..</div>
-              </div>
+                </div>
+               <Link href={`/webapp/dashboard?siteId=${site._id}`} 
+                className="w-[20%]  justify-center items-center flex h-[100%]">
+                <BsThreeDotsVertical size={15} color="#fff" className="hover:text-[#888] cursor-pointer"/>
+              </Link>
             </div>
+           
+              </div>
+                 
           ))}
         {addproject && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center h-screen z-50">

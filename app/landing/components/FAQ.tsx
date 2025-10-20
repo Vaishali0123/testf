@@ -194,7 +194,7 @@ const FAQ: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full py-10 md:py-10 flex flex-col items-center justify-center select-none bg-black min-h-screen">
+    <div className="w-full py-10 md:py-10 flex flex-col items-center justify-center select-none  ">
       {/* FAQ Header */}
       <div
         ref={headerRef}

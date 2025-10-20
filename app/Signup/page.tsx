@@ -3,19 +3,40 @@
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
+import toast from "react-hot-toast";
+import Cookies from "js-cookie";
+import { useAuthContext, UserData } from "../utils/auth";
+import { NEXT_PUBLIC_API } from "../utils/config";
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
-
+const { setAuth, setData} = useAuthContext()
   //  Email validation function
   const validateEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
+
+    const cookieSetter = (data: UserData, token: string) => {
+    try {
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 15);
+
+      Cookies.set("token", token, { expires: expirationDate });
+
+      setData(data);
+      setAuth(true);
+
+      toast.success("Login successful!");
+      router.push("/dashboard");
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateEmail(email)) {
@@ -26,19 +47,21 @@ export default function SignupPage() {
     setMessage("");
 
     try {
-      const res = await axios.post("http://localhost:7002/api/signup", {
+      const res = await axios.post(`${NEXT_PUBLIC_API}/signup`, {
         email,
         password,
       });
 
       if (res.data.success) {
+         cookieSetter(res.data.data, res.data.access_token);
         // Save email to sessionStorage
-        sessionStorage.setItem("userEmail", email);
+        // sessionStorage.setItem("userEmail", email);
 
         // Redirect to /multisiteconnect
         router.push("/multisiteconnect");
       } else {
-        setMessage(res.data.message || "Something went wrong");
+         toast.error("Seems like you don't have an account in the platform.");
+        // setMessage(res.data.message || "Something went wrong");
       }
     } catch (err) {
       setMessage("Error submitting form");
