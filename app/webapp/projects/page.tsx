@@ -31,7 +31,7 @@ const Page = () => {
   const [addproject, setAddproject] = useState(false);
   const [siteUrl, setSiteUrl] = useState("");
   const { data } = useAuthContext();
-
+console.log(data,"data")
   const handleConnect = async () => {
     if (!data) return alert("User data is missing");
     if (!siteUrl) return alert("Please enter a site URL");
@@ -52,7 +52,7 @@ const Page = () => {
 
       // Save only clean site_url in DB
       const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
-        email: data.user.email || data.email,
+        email: data?.email? data?.email:data?.user?.email,
         site_url: cleanUrl,
       });
 

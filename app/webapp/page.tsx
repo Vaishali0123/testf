@@ -1,5 +1,3 @@
-
-
 "use client";
 import React, { Suspense, useEffect, useRef, useState } from "react";
 import { ImageIcon, MessageCircle, RotateCcw } from "lucide-react";
@@ -7,7 +5,6 @@ import axios from "axios";
 import { NEXT_PUBLIC_API } from "../utils/config";
 import purpleeffect from "../../public/purpleeffect.svg";
 import { IoChatbubbleEllipsesOutline, IoMic } from "react-icons/io5";
-import { CiMicrophoneOn } from "react-icons/ci";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
@@ -16,152 +13,326 @@ import { useAuthContext } from "../utils/auth";
 import { useSearchParams } from "next/navigation";
 import TypingDots from "./components/Typingdots";
 
-// type SpeechRecognitionEvent = Event & {
-//   results: SpeechRecognitionResultList;
-// };
-// interface Message {
-//   type: string;
-//   // message: object | string ;
-//   response: string;
-//   timestamp: string;
-//   images: ImageData[];
-//   message: string;
+// Type definitions
+interface Message {
+  type: "user" | "ai" | "system";
+  role: "user" | "assistant" | "system";
+  message: string;
+  response: string;
+  timestamp: string;
+  images: ImageData[];
+  items: unknown[];
+  nextActions: string[];
+  stepBystep: string[];
+}
 
-//   role: string;
-//   items: ItemData[];
-//   // nextActions:any[];
-//   // stepBystep:any[];
-// }
-// interface ImageData {
-//   url: string;
-//   title?: string;
-//   date?: string | Date;
-// }
+interface ImageData {
+  url?: string;
+  thumbnail?: string;
+  source_url?: string;
+  title?: string;
+  name?: string;
+  date?: string | Date;
+}
 
+interface SiteData {
+  site_url?: string;
+  admin_username?: string;
+  access_token?: string;
+  _id?: string;
+}
 
-// interface ItemData {
-//   // For images
-//   source_url?: string;
-//   title?: string;
-//   date?: string | Date;
-//   // For themes/data
-//   name?: string;
-//   slug?: string;
-//   description?: string;
-//   features?: string[];
-//   rating?: number;
-//   downloads?: string;
-//   message?: string;
-//   response?: string;
-// }
-// // Safely render message content that could be a string or an object (e.g., WP REST API with { rendered })
-// const renderMessageContent = (message: any): string => {
-//   if (message == null) return "";
-//   if (typeof message === "string") return message;
-//   if (typeof message === "object") {
-//     const maybeRendered = (message as any)?.rendered;
-//     if (typeof maybeRendered === "string") return maybeRendered;
-//     try {
-//       return JSON.stringify(message, null, 2);
-//     } catch {
-//       return String(message);
-//     }
-//   }
-//   return String(message);
-// };
+interface AuthData {
+  user?: {
+    email?: string;
+    id?: string;
+  };
+}
+
+interface BackendResponse {
+  success?: boolean;
+  response?: string | unknown;
+  items?: unknown[];
+  nextActions?: string[];
+  stepByStep?: string[];
+  images?: ImageData[];
+  details?: {
+    link?: string;
+  };
+  link?: string;
+  agentUsed?: string;
+  classificationReasoning?: string;
+  suggestions?: string[];
+  refreshNeeded?: boolean;
+}
+
+interface NormalizedMessage {
+  displayText: string;
+  parsedMessage: unknown;
+  items: unknown[];
+  imagesArray: ImageData[];
+  nextActions: string[];
+  stepByStep: string[];
+}
+
+// Extend Window interface for Speech Recognition
+declare global {
+  interface Window {
+    SpeechRecognition: new () => {
+      lang: string;
+      interimResults: boolean;
+      maxAlternatives: number;
+      start: () => void;
+      onresult:
+        | ((event: {
+            results: {
+              [index: number]: { [index: number]: { transcript: string } };
+            };
+          }) => void)
+        | null;
+      onend: (() => void) | null;
+    };
+    webkitSpeechRecognition: new () => {
+      lang: string;
+      interimResults: boolean;
+      maxAlternatives: number;
+      start: () => void;
+      onresult:
+        | ((event: {
+            results: {
+              [index: number]: { [index: number]: { transcript: string } };
+            };
+          }) => void)
+        | null;
+      onend: (() => void) | null;
+    };
+  }
+}
+
+// Standardized message interface
+const createMessage = (overrides: Partial<Message> = {}): Message => ({
+  type: "ai", // "user" | "ai" | "system"
+  role: "assistant", // "user" | "assistant" | "system"
+  message: "",
+  response: "",
+  timestamp: new Date().toLocaleTimeString(),
+  images: [],
+  items: [],
+  nextActions: [],
+  stepBystep: [],
+  ...overrides,
+});
+
+// Utility function to safely extract text content
+const extractTextContent = (content: unknown): string => {
+  if (content == null) return "";
+  if (typeof content === "string") return content;
+  if (typeof content === "object" && content !== null) {
+    const obj = content as Record<string, unknown>;
+    // Handle WordPress rendered content
+    if (obj.rendered && typeof obj.rendered === "string") {
+      return obj.rendered;
+    }
+    // Handle response field
+    if (obj.response && typeof obj.response === "string") {
+      return obj.response;
+    }
+    // Fallback to JSON stringify
+    try {
+      return JSON.stringify(content, null, 2);
+    } catch {
+      return String(content);
+    }
+  }
+  return String(content);
+};
+
+// Utility function to normalize backend response data
+const normalizeBackendResponse = (
+  data: BackendResponse | null
+): BackendResponse | null => {
+  if (!data) return null;
+
+  return {
+    success: data.success || false,
+    response: extractTextContent(data.response),
+    items: Array.isArray(data.items) ? data.items : [],
+    nextActions: Array.isArray(data.nextActions) ? data.nextActions : [],
+    stepByStep: Array.isArray(data.stepByStep) ? data.stepByStep : [],
+    images: Array.isArray(data.images) ? data.images : [],
+    link: data.details?.link || data.link || "",
+    // Additional fields can be added here
+    agentUsed: data.agentUsed,
+    classificationReasoning: data.classificationReasoning,
+    suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+    refreshNeeded: data.refreshNeeded || false,
+  };
+};
 const PageContent = () => {
   // Auto-scroll refs (defined early)
-  const messagesEndRef = useRef(null);
-  const chatScrollContainerRef = useRef(null);
-const searchParams = useSearchParams();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
   const siteurlquery = searchParams.get("site_url");
   const [siteUrl, setSiteUrl] = useState("");
   const email = "sheeratgupta@gmail.com";
-  const {data:authdata}=useAuthContext()
+  const { data: authdata } = useAuthContext() as { data: AuthData };
   const [siteid, setSiteid] = useState(sessionStorage.getItem("siteId") || "");
-  const [siteurl, setSiteurl] = useState(sessionStorage.getItem("siteurl") || "");
-  const [uploadedImages, setUploadedImages] = useState([]);
-  const [sitedata,setSitedata]=useState({})
-  const dispatch=useDispatch()
-  const safeJsonParse = async(input) => {
-  // If it's already an object, return it
-  if (input === null || input === undefined) return input;
-  if (typeof input !== "string") return input;
-  try {
-    return JSON.parse(input);
-  } catch (e) {
-    // Not JSON — return original string
-    return input;
-  }
-}
-  const normalizeMessage = (msg) => {
-    // Handle different message formats based on role
-    let parsedMessage = null;
+  const [siteurl, setSiteurl] = useState(
+    sessionStorage.getItem("siteurl") || ""
+  );
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [sitedata, setSitedata] = useState<SiteData>({});
+  const dispatch = useDispatch();
+  const safeJsonParse = async (input: unknown) => {
+    // If it's already an object, return it
+    if (input === null || input === undefined) return input;
+    if (typeof input !== "string") return input;
+    try {
+      return JSON.parse(input);
+    } catch (e) {
+      // Not JSON — return original string
+      return input;
+    }
+  };
+  const normalizeMessage = (msg: Message): NormalizedMessage => {
+    if (!msg) {
+      return {
+        displayText: "",
+        parsedMessage: null,
+        items: [],
+        imagesArray: [],
+        nextActions: [],
+        stepByStep: [],
+      };
+    }
+
+    // Initialize with default values
     let displayText = "";
-    let items;
-    let nextActions;
-    let stepByStep;
-    
-    // For assistant messages, the structured data is in the message field as JSON
+    let items = [];
+    let nextActions = [];
+    let stepByStep = [];
+    let imagesArray = [];
+    let parsedMessage = null;
+
+    // Extract text content based on message type
     if (msg?.role === "assistant" || msg?.type === "ai") {
+      // For AI messages, try to parse structured data
       try {
-        // Use synchronous JSON parsing instead of async safeJsonParse
         if (typeof msg?.message === "string") {
-          parsedMessage = JSON.parse(msg.message);
+          // Try to parse as JSON first
+          try {
+            parsedMessage = JSON.parse(msg.message);
+            if (parsedMessage && typeof parsedMessage === "object") {
+              displayText = extractTextContent(
+                parsedMessage.response || parsedMessage.message
+              );
+              items = Array.isArray(parsedMessage.items)
+                ? parsedMessage.items
+                : [];
+              nextActions = Array.isArray(parsedMessage.nextActions)
+                ? parsedMessage.nextActions
+                : [];
+              stepByStep = Array.isArray(parsedMessage.stepByStep)
+                ? parsedMessage.stepByStep
+                : [];
+            } else {
+              displayText = msg.message;
+            }
+          } catch {
+            // If JSON parsing fails, treat as plain text
+            displayText = msg.message;
+          }
         } else if (typeof msg?.message === "object") {
-          parsedMessage = msg.message;
-        }
-        
-        if (parsedMessage && typeof parsedMessage === "object") {
-          displayText = parsedMessage.response || "";
-          items = Array.isArray(parsedMessage.items) ? parsedMessage.items : [];
-          nextActions = Array.isArray(parsedMessage.nextActions) ? parsedMessage.nextActions : [];
-          stepByStep = Array.isArray(parsedMessage.stepByStep) ? parsedMessage.stepByStep : [];
+          parsedMessage = msg.message as Record<string, unknown>;
+          displayText = extractTextContent(
+            (parsedMessage as Record<string, unknown>)?.response ||
+              (parsedMessage as Record<string, unknown>)?.message
+          );
+          items = Array.isArray(
+            (parsedMessage as Record<string, unknown>)?.items
+          )
+            ? ((parsedMessage as Record<string, unknown>).items as unknown[])
+            : [];
+          nextActions = Array.isArray(
+            (parsedMessage as Record<string, unknown>)?.nextActions
+          )
+            ? ((parsedMessage as Record<string, unknown>)
+                .nextActions as string[])
+            : [];
+          stepByStep = Array.isArray(
+            (parsedMessage as Record<string, unknown>)?.stepByStep
+          )
+            ? ((parsedMessage as Record<string, unknown>)
+                .stepByStep as string[])
+            : [];
         } else {
-          // Fallback if parsing fails
-          displayText = typeof msg?.message === "string" ? msg.message : "";
+          displayText = extractTextContent(msg?.message);
         }
       } catch (e) {
-        displayText = typeof msg?.message === "string" ? msg.message : "";
+        displayText = extractTextContent(msg?.message);
       }
     } else {
       // For user messages, use the message directly
-      displayText = typeof msg?.message === "string" ? msg.message : "";
-      
-      // Also check for existing items/nextActions/stepByStep in the message object
+      displayText = extractTextContent(msg?.message);
+    }
+
+    // Extract arrays from message object (fallback for direct properties)
+    if (!parsedMessage) {
       items = Array.isArray(msg?.items) ? msg.items : [];
       nextActions = Array.isArray(msg?.nextActions) ? msg.nextActions : [];
       stepByStep = Array.isArray(msg?.stepBystep) ? msg.stepBystep : [];
     }
 
-    // Images: from msg.images array
-    const imagesArray = Array.isArray(msg?.images) ? msg.images : [];
+    // Extract images from various possible locations
+    imagesArray = Array.isArray(msg?.images) ? msg.images : [];
+
+    // Separate images from items
+    const imageItems = items.filter(
+      (item: unknown) =>
+        item &&
+        typeof item === "object" &&
+        item !== null &&
+        ((item as Record<string, unknown>).url ||
+          (item as Record<string, unknown>).thumbnail ||
+          (item as Record<string, unknown>).source_url)
+    );
+    const dataItems = items.filter(
+      (item: unknown) =>
+        item &&
+        typeof item === "object" &&
+        item !== null &&
+        !(
+          (item as Record<string, unknown>).url ||
+          (item as Record<string, unknown>).thumbnail ||
+          (item as Record<string, unknown>).source_url
+        )
+    );
 
     return {
       displayText,
       parsedMessage,
-      items,
-      imagesArray,
+      items: dataItems,
+      imagesArray: [...imagesArray, ...imageItems],
       nextActions,
       stepByStep,
     };
   };
-// Site details
-const getsitedetails=async()=>{
-  if(!siteid){
-    return
-  }
-try{
-  const res=await axios.get(`${NEXT_PUBLIC_API}/getsite/${siteid}`)
+  // Site details
+  const getsitedetails = async () => {
+    if (!siteid) {
+      return;
+    }
+    try {
+      const res = await axios.get(`${NEXT_PUBLIC_API}/getsite/${siteid}`);
 
-  setSitedata(res?.data?.data)
-}
-catch(e){
-  console.log(e)
-}
-}
+      setSitedata(res?.data?.data);
+    } catch (e) {
+      console.log(e);
+    }
+  };
   // console.log(email, "email");
-   const handleImageUpload = (e) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setUploadedImages((prev) => [...prev, ...files]);
   };
@@ -200,30 +371,23 @@ catch(e){
     }
   };
 
-  const [iframeKey, setIframeKey] = useState(0);
   const [prompt, setPrompt] = useState("");
   const [saving, setSaving] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
   const [reload, setReload] = useState(false);
-  const [data, setData] = useState({});
+  const [data, setData] = useState<Record<string, unknown>>({});
   // Conversation & thread management
 
-  const [conversation, setConversation] = useState([
-    {
+  const [conversation, setConversation] = useState<Message[]>([
+    createMessage({
       type: "ai",
+      role: "assistant",
       message:
         "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
-      response: "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
-      role: "assistant",
       timestamp: new Date().toLocaleTimeString(),
-      images: [],
-      items: [],
-      nextActions: [],
-      stepBystep: []
-    },
+    }),
   ]);
-   // Auto-scroll effect (after conversation is initialized)
+  // Auto-scroll effect (after conversation is initialized)
   useEffect(() => {
     try {
       if (chatScrollContainerRef.current) {
@@ -236,33 +400,27 @@ catch(e){
   }, [conversation]);
 
   const handleSubmitPrompt = async () => {
-   if (!prompt.trim() && uploadedImages.length === 0) return;
+    if (!prompt.trim() && uploadedImages.length === 0) return;
 
     setSaving(true);
 
-    const timestamp = new Date().toLocaleTimeString();
-    const newUserMessage = {
+    // Create standardized user message
+    const newUserMessage = createMessage({
       type: "user",
+      role: "user",
       message: prompt,
       response: prompt,
-      role: "user",
-      timestamp,
-      images: [],
-      items: [],
-      nextActions: [],
-      stepBystep: []
-    };
-    const processingMessage = {
+      timestamp: new Date().toLocaleTimeString(),
+    });
+
+    // Create processing message
+    const processingMessage = createMessage({
       type: "ai",
+      role: "assistant",
       message: "Typing...",
       response: "Typing...",
-      role: "assistant",
-      timestamp,
-      images: [],
-      items: [],
-      nextActions: [],
-      stepBystep: []
-    };
+      timestamp: new Date().toLocaleTimeString(),
+    });
 
     setConversation((prev) => [...prev, newUserMessage, processingMessage]);
 
@@ -285,10 +443,10 @@ catch(e){
     const formData = new FormData();
     formData.append("prompt", prompt);
     formData.append("threadId", "thread-xyz");
-    formData.append("siteUrl", sitedata?.site_url);
-    formData.append("username", sitedata?.admin_username);
-    formData.append("accessToken", sitedata?.access_token);
-    formData.append("projectId", sitedata?._id);
+    formData.append("siteUrl", sitedata?.site_url || "");
+    formData.append("username", sitedata?.admin_username || "");
+    formData.append("accessToken", sitedata?.access_token || "");
+    formData.append("projectId", sitedata?._id || "");
 
     uploadedImages.forEach((file) => {
       formData.append("images", file);
@@ -302,67 +460,80 @@ catch(e){
         }));
 
       conversationHistory.push({ role: "user", content: prompt });
- formData.append("conversation", JSON.stringify(conversationHistory));
- const response = await axios.post(
-        `${NEXT_PUBLIC_API}/test`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-     
-        const data = response.data?.data;
-        console.log(response.data?.data,typeof response.data?.data,"response.data?.data")
-      setLink(data?.details?.link)
-      setData(data);
+      formData.append("conversation", JSON.stringify(conversationHistory));
+      const response = await axios.post(`${NEXT_PUBLIC_API}/test`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const rawData = response.data?.data;
+      console.log(rawData, typeof rawData, "response.data?.data");
+
+      // Normalize the backend response
+      const normalizedData = normalizeBackendResponse(rawData);
+      setLink(normalizedData?.link || "");
+      setData(rawData as Record<string, unknown>);
       setConversation((prev) => {
         const withoutProcessing = prev.slice(0, -1); // Remove "Typing..."
-console.log(data,typeof data,"data")
-        if (data.success) {
-          // Use data.response as primary response, fallback to data.details
-          const aiResponse =
-            data?.response ??
-            (typeof data?.response === "string" ? data.response : JSON.stringify(data.response));
 
-          // const aiResponse =
-          //   typeof aiResponseRaw === "string"
-          //     ? aiResponseRaw
-          //     : (aiResponseRaw && typeof aiResponseRaw === "object" && typeof (aiResponseRaw as any).rendered === "string")
-          //     ? (aiResponseRaw as any).rendered
-          //     : (() => {
-          //         try {
-          //           return JSON.stringify(aiResponseRaw);
-          //         } catch {
-          //           return String(aiResponseRaw);
-          //         }
-          //       })();
-
-          // Check if details?.items exists and is an array
-          const itemsArray = Array.isArray(data?.items) && data.items.length > 0
-            ? data.items
-            : [];
-const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length > 0
-            ? data?.nextActions
-            : [];
-        const stepByStep = Array.isArray(data?.stepByStep) && data?.stepByStep.length > 0
-            ? data?.stepByStep
-            : [];
-          // Separate images and other items
-          const imageItems = itemsArray.filter((item) => item.url);
-          const dataItems = itemsArray.filter((item) => !item.url);
-
-          // Attach items to this AI message
-          const newAiMessage = {
+        if (normalizedData?.success) {
+          // Create standardized AI message
+          const newAiMessage = createMessage({
             type: "ai",
-          
-            message: aiResponse,
             role: "assistant",
-            images: imageItems,
-            items: dataItems,
-            nextActions: nextActions,
-            stepBystep: stepByStep,
+            message: String(normalizedData.response || ""),
+            response: String(normalizedData.response || ""),
+            images: normalizedData.images,
+            items: normalizedData.items,
+            nextActions: normalizedData.nextActions,
+            stepBystep: normalizedData.stepByStep,
             timestamp: new Date().toLocaleTimeString(),
-          };
+          });
 
           const updated = [...withoutProcessing, newAiMessage];
+
+          // Add optional system messages
+          if (
+            normalizedData.agentUsed &&
+            normalizedData.classificationReasoning
+          ) {
+            updated.push(
+              createMessage({
+                type: "system",
+                role: "system",
+                message: `🤖 Routed to: ${normalizedData.agentUsed} | Reason: ${normalizedData.classificationReasoning}`,
+                timestamp: new Date().toLocaleTimeString(),
+              })
+            );
+          }
+
+          if (
+            normalizedData.suggestions &&
+            normalizedData.suggestions.length > 0
+          ) {
+            updated.push(
+              createMessage({
+                type: "ai",
+                role: "assistant",
+                message:
+                  "💡 Suggestions:\n" +
+                  normalizedData.suggestions
+                    .map((s: string) => `• ${s}`)
+                    .join("\n"),
+                timestamp: new Date().toLocaleTimeString(),
+              })
+            );
+          }
+
+          if (normalizedData.refreshNeeded || shouldShowPreview) {
+            updated.push(
+              createMessage({
+                type: "ai",
+                role: "assistant",
+                message: "👁️ Preview updated! Check the preview panel.",
+                timestamp: new Date().toLocaleTimeString(),
+              })
+            );
+          }
 
           // Optional debug/system messages
           // if (data.agentUsed && data.classificationReasoning) {
@@ -412,17 +583,20 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
 
           return updated;
         } else {
+          // Handle error case
           return [
             ...withoutProcessing,
-            {
+            createMessage({
               type: "ai",
-              message: `${data?.response || "Server is facing issues.Please try again later."}`,
+              role: "assistant",
+              message:
+                String(normalizedData?.response || "") ||
+                "Server is facing issues. Please try again later.",
+              items: normalizedData?.items || [],
+              nextActions: normalizedData?.nextActions || [],
+              stepBystep: normalizedData?.stepByStep || [],
               timestamp: new Date().toLocaleTimeString(),
-              images: [],
-              items: [],
-              nextActions:[],
-              stepByStep:[]
-            },
+            }),
           ];
         }
       });
@@ -432,18 +606,15 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
         const withoutProcessing = prev.slice(0, -1);
         return [
           ...withoutProcessing,
-          {
+          createMessage({
             type: "ai",
-            response: `Error: ${
-              err ||
+            role: "assistant",
+            message: `Error: ${
+              (err as Error)?.message ||
               "Failed to process your request. Check if the backend server is running."
             }`,
             timestamp: new Date().toLocaleTimeString(),
-            images: [],
-            items: [],
-            nextActions:[], 
-            stepByStep:[]
-          },
+          }),
         ];
       });
     }
@@ -454,83 +625,96 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
 
   const resetConversation = () => {
     setConversation([
-      {
+      createMessage({
         type: "ai",
+        role: "assistant",
         message:
-          " Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
+          "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
         timestamp: new Date().toLocaleTimeString(),
-        images: [],
-        items: [],
-      },
+      }),
     ]);
   };
-  const [link,setLink]=useState("")
+  const [link, setLink] = useState("");
 
   // const siteid = sessionStorage.getItem("siteId");
   // const siteurl = sessionStorage.getItem("siteurl");
 
   // const [tab, setTab] = useState("tab");
-    const tab = useSelector((state) => state.basicDetails.data.tab);
+  const tab = useSelector((state: RootState) => state.basicDetails.data.tab);
   useEffect(() => {
-    getMessages()
+    getMessages();
     // setTab(sessionStorage.getItem("tab") || "tab");
     // if (typeof window !== "undefined") {
-      setSiteid(sessionStorage.getItem("siteId") || "");
-      setSiteurl(sessionStorage.getItem("siteurl") || "");
-      getsitedetails()
+    setSiteid(sessionStorage.getItem("siteId") || "");
+    setSiteurl(sessionStorage.getItem("siteurl") || "");
+    getsitedetails();
     // }
   }, []);
-  const getMessages=async()=>{
-   
-    if(!siteid){
+  const getMessages = async () => {
+    if (!siteid) {
       return;
     }
-      try{
-        const res=await axios.get(`${NEXT_PUBLIC_API}/getmessages/${siteid}`);
-        // setConversation(res.data.messages)
-      
-        if(res?.data?.messages?.length>0  )
-        // { setConversation((prev) => [...prev, res.data.messages]);}
-      {setConversation((prev) => [...prev, ...res.data.messages])}
-       
-      }
-      catch(e){
-        console.log(e
-        )
-      }
-  }
+    try {
+      const res = await axios.get(`${NEXT_PUBLIC_API}/getmessages/${siteid}`);
+      // setConversation(res.data.messages)
 
-  const recognitionRef = useRef(null);
+      if (res?.data?.messages?.length > 0) {
+        // { setConversation((prev) => [...prev, res.data.messages]);}
+        console.log(res?.data?.messages, "messages");
+        setConversation((prev) => [...prev, ...res.data.messages]);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const recognitionRef = useRef<{
+    lang: string;
+    interimResults: boolean;
+    maxAlternatives: number;
+    start: () => void;
+    onresult:
+      | ((event: {
+          results: {
+            [index: number]: { [index: number]: { transcript: string } };
+          };
+        }) => void)
+      | null;
+    onend: (() => void) | null;
+  } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-   const [isRecording, setIsRecording] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  //  For sound recognition
   useEffect(() => {
     setIsLoaded(true);
 
     // Initialize SpeechRecognition
     const SpeechRecognition =
-      (window ).SpeechRecognition ||
-      (window ).webkitSpeechRecognition;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.lang = "en-US";
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
-      recognition.onresult = (event) => {
-  const transcript = event.results[0][0].transcript;
-  setPrompt(transcript);
-};
- recognition.onend = () => {
+      recognition.onresult = (event: {
+        results: {
+          [index: number]: { [index: number]: { transcript: string } };
+        };
+      }) => {
+        const transcript = event.results[0][0].transcript;
+        setPrompt(transcript);
+      };
+      recognition.onend = () => {
         setIsRecording(false);
       };
       recognitionRef.current = recognition;
-     
     } else {
       console.warn("SpeechRecognition API not supported in this browser");
     }
   }, []);
-    const handleMicClick = () => {
-       setIsRecording((prev) => !prev);
+  const handleMicClick = () => {
+    setIsRecording((prev) => !prev);
     if (!recognitionRef.current) return;
     recognitionRef.current.start();
   };
@@ -553,7 +737,7 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
       >
         {siteurl ? (
           <iframe
-            src={link?link:siteurl}
+            src={link ? link : siteurl}
             className="w-full h-full "
             style={{ border: "none" }}
           />
@@ -613,14 +797,14 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
               placeholder="Site url"
               className="border-2 z-20 border-[#fff] bg-black outline-none w-[30%]  text-white my-4 p-2 text-[14px] rounded-full"
             />
-           
+
             <button
               onClick={handleConnect}
               className="px-8 z-20 py-2 text-black text-[14px] bg-white rounded-full"
             >
               Connect Webivus to Your Site
             </button>
-             <button
+            <button
               onClick={() => {
                 window.location.href = "/api/download-plugin";
               }}
@@ -666,33 +850,47 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
                   </button>
                 </div>
 
-                <div ref={chatScrollContainerRef} className="h-[100%] p-4 overflow-y-scroll">
+                <div
+                  ref={chatScrollContainerRef}
+                  className="h-[100%] p-4 overflow-y-scroll"
+                >
                   <div className="space-y-4 ">
-                    {conversation.map((msg, idx) => { 
+                    {conversation.map((msg, idx) => {
                       const {
-    displayText,
-    items,
-    imagesArray,
-    nextActions,
-    stepByStep,
-  } = normalizeMessage(msg);
-    const imageItems = items?.filter((d) => d && (d.url || d.thumbnail));
-  // fallback if items don't contain images but msg.images exists
-  const extraImages = Array.isArray(imagesArray) ? imagesArray : [];
+                        displayText,
+                        items,
+                        imagesArray,
+                        nextActions,
+                        stepByStep,
+                      } = normalizeMessage(msg);
+                      const imageItems = items?.filter(
+                        (d: unknown) =>
+                          d &&
+                          typeof d === "object" &&
+                          d !== null &&
+                          ((d as Record<string, unknown>).url ||
+                            (d as Record<string, unknown>).thumbnail)
+                      );
+                      // fallback if items don't contain images but msg.images exists
+                      const extraImages = Array.isArray(imagesArray)
+                        ? imagesArray
+                        : [];
                       return (
                         <div
                           key={idx}
                           className={`flex ${
                             msg.type === "user" || msg.role === "user"
                               ? "justify-end"
-                              : msg.type === "system" || msg.type === "ai" || msg.role === "assistant" || msg.role === "ai" || msg.role === "system"
+                              : msg.type === "system" ||
+                                msg.type === "ai" ||
+                                msg.role === "assistant"
                               ? "justify-start"
                               : "justify-start"
                           }`}
                         >
                           <div
                             className={`max-w-[85%] p-4 rounded-lg text-sm ${
-                              msg.type==="user" || msg.role === "user"
+                              msg.type === "user" || msg.role === "user"
                                 ? "bg-purple-800/60 text-white rounded-br-sm"
                                 : msg.type === "system"
                                 ? " text-gray-300 rounded text-xs opacity-80"
@@ -701,27 +899,27 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
                           >
                             {/* AI Response Content */}
                             <div className="whitespace-pre-wrap leading-relaxed mb-3">
-                         
-      {/* Main message area */}
-      {msg?.message === "Typing..." ? (
-        <div className="flex items-center">
-          <TypingDots size={8} color="#888" />
-        </div>
-      ) : (
-        <div>
-          {displayText ?? (
-            // If there's no textual display value, but msg.message exists as object, render it safely
-            typeof msg?.message === "object" ? (
-              <pre className="whitespace-pre-wrap text-xs text-gray-300">
-                {JSON.stringify(msg.message, null, 2)}
-              </pre>
-            ) : (
-              <span className="text-xs text-gray-300">—</span>
-            )
-          )}
-        </div>
-      )}
-  {/* {msg.message === "Typing..." ? (
+                              {/* Main message area */}
+                              {msg?.message === "Typing..." ? (
+                                <div className="flex items-center">
+                                  <TypingDots size={8} color="#888" />
+                                </div>
+                              ) : (
+                                <div>
+                                  {displayText ??
+                                    // If there's no textual display value, but msg.message exists as object, render it safely
+                                    (typeof msg?.message === "object" ? (
+                                      <pre className="whitespace-pre-wrap bg-red-800 text-xs text-gray-300">
+                                        {JSON.stringify(msg.message, null, 2)}
+                                      </pre>
+                                    ) : (
+                                      <span className="text-xs text-gray-300">
+                                        —
+                                      </span>
+                                    ))}
+                                </div>
+                              )}
+                              {/* {msg.message === "Typing..." ? (
     <div className="flex items-center">
       <TypingDots size={8} color="#888" />
     </div>
@@ -742,55 +940,88 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
                             </div>
 
                             {/* Render images if present */}
-                            {(imageItems?.length > 0 || extraImages?.length > 0) && (
-        <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[...imageItems, ...extraImages].map((image, i) => {
-              // If image is a raw string URL (rare), handle it
-              const url = typeof image === "string" ? image : image.url ?? image.thumbnail;
-              const title =
-                typeof image === "string"
-                  ? ""
-                  : image.title || image.name || "";
-              const date = typeof image === "string" ? null : image.date;
+                            {(imageItems?.length > 0 ||
+                              extraImages?.length > 0) && (
+                              <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {[...imageItems, ...extraImages].map(
+                                    (image, i) => {
+                                      // If image is a raw string URL (rare), handle it
+                                      const url =
+                                        typeof image === "string"
+                                          ? image
+                                          : String(
+                                              (image as Record<string, unknown>)
+                                                ?.url ??
+                                                (
+                                                  image as Record<
+                                                    string,
+                                                    unknown
+                                                  >
+                                                )?.thumbnail ??
+                                                ""
+                                            );
+                                      const title =
+                                        typeof image === "string"
+                                          ? ""
+                                          : String(
+                                              (image as Record<string, unknown>)
+                                                ?.title ||
+                                                (
+                                                  image as Record<
+                                                    string,
+                                                    unknown
+                                                  >
+                                                )?.name ||
+                                                ""
+                                            );
+                                      const date =
+                                        typeof image === "string"
+                                          ? null
+                                          : ((image as Record<string, unknown>)
+                                              ?.date as string | null);
 
-              if (!url) return null;
+                                      if (!url) return null;
 
-              return (
-                <div
-                  key={i}
-                  className="flex flex-col gap-2 p-2 rounded border border-gray-600/30"
-                >
-                  <img
-                    src={url}
-                    alt={title || "image"}
-                    className="w-full h-32 object-cover rounded"
-                    onError={(e) => {
-                      // hide broken images rather than show broken icon
-                      (e.currentTarget).style.display = "none";
-                    }}
-                  />
-                  <div className="text-xs text-gray-300">
-                    {title && (
-                      <div
-                        className="font-medium truncate"
-                        title={title}
-                      >
-                        {title}
-                      </div>
-                    )}
-                    {date && (
-                      <div className="text-gray-400 mt-1">
-                        {new Date(date).toDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="flex flex-col gap-2 p-2 rounded border border-gray-600/30"
+                                        >
+                                          <img
+                                            src={url}
+                                            alt={title || "image"}
+                                            className="w-full h-32 object-cover rounded"
+                                            onError={(e) => {
+                                              // hide broken images rather than show broken icon
+                                              e.currentTarget.style.display =
+                                                "none";
+                                            }}
+                                          />
+                                          <div className="text-xs text-gray-300">
+                                            {title && (
+                                              <div
+                                                className="font-medium truncate"
+                                                title={title}
+                                              >
+                                                {title}
+                                              </div>
+                                            )}
+                                            {date && (
+                                              <div className="text-gray-400 mt-1">
+                                                {new Date(
+                                                  String(date)
+                                                ).toDateString()}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Render data items (themes, etc.) if present */}
                             {/* {msg?.items?.length > 0 && (
@@ -840,19 +1071,22 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
                                 </div>
                               </div>
                             )} */}
-                            {items?.length > 0 && !items?.[0]?.url && !items?.[0]?.thumbnail && (
-        <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-          <div className="space-y-3">
-            {items.map((item, i) => {
-              // Already rendered as image above if it had url/thumbnail
-              // if (item && (item.url || item.thumbnail)) return null;
-              return (
-                <div
-                  key={i}
-                  className="p-3 overflow-x-auto  rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    {/* <div className="flex-1">
+                            {items?.length > 0 &&
+                              !(items?.[0] as Record<string, unknown>)?.url &&
+                              !(items?.[0] as Record<string, unknown>)
+                                ?.thumbnail && (
+                                <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
+                                  <div className="space-y-3">
+                                    {items.map((item: unknown, i: number) => {
+                                      // Already rendered as image above if it had url/thumbnail
+                                      // if (item && (item.url || item.thumbnail)) return null;
+                                      return (
+                                        <div
+                                          key={i}
+                                          className="p-3 overflow-x-auto  rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
+                                        >
+                                          <div className="flex items-start justify-between mb-2">
+                                            {/* <div className="flex-1">
                       {typeof item==="object"?(
                          <div className="text-sm font-semibold text-white mb-1">
                         {JSON.stringify(item)}
@@ -869,20 +1103,22 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
                         </p>
                       )}
                     </div> */}
-                  </div>
+                                          </div>
 
-                  {/* show full JSON for complex items so devs can inspect */}
-                  <div className="text-xs text-gray-300">
-                    <pre className="whitespace-pre-wrap">
-                      {typeof item === "object" ? JSON.stringify(item, null, 2) : String(item)}
-                    </pre>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                                          {/* show full JSON for complex items so devs can inspect */}
+                                          <div className="text-xs text-gray-300">
+                                            <pre className="whitespace-pre-wrap">
+                                              {typeof item === "object"
+                                                ? JSON.stringify(item, null, 2)
+                                                : String(item)}
+                                            </pre>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             {/* Steps */}
                             {/* {msg?.message && JSON.parse(msg?.message)?.stepBystep?.length > 0 && (
                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
@@ -908,36 +1144,61 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
                               </div>
                             )} */}
                             {/* stepByStep */}
-      {Array.isArray(stepByStep) && stepByStep?.length > 0 && (
-        <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-          <div className="space-y-2">
-            {stepByStep.map((s, i) => (
-              <div key={i} className="text-xs text-gray-300">
-                {typeof s === "string" ? s : JSON.stringify(s)}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                            {Array.isArray(stepByStep) &&
+                              stepByStep?.length > 0 && (
+                                <div>
+                                  <div className="text-sm mt-4 font-semibold text-white mb-1">
+                                    Steps :
+                                  </div>
+                                  <div className="p-3  rounded-lg border border-gray-700/50">
+                                    <div className="space-y-2">
+                                      {stepByStep.map(
+                                        (s: string, i: number) => (
+                                          <div
+                                            key={i}
+                                            className="text-xs text-gray-300"
+                                          >
+                                            {typeof s === "string"
+                                              ? s
+                                              : JSON.stringify(s)}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
-      {/* nextActions */}
-      {Array.isArray(nextActions) && nextActions?.length > 0 && (
-        <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-          <div className="space-y-2">
-            {nextActions.map((a, i) => (
-              <div key={i} className="text-xs text-gray-300">
-                {typeof a === "string" ? a : JSON.stringify(a)}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-{(msg.type === "user" || msg.role === "user") && (
+                            {/* nextActions */}
+                            {Array.isArray(nextActions) &&
+                              nextActions?.length > 0 && (
+                                <div>
+                                  <div className="text-sm mt-4 font-semibold text-white mb-1">
+                                    Next Actions :
+                                  </div>
+                                  <div className=" p-3  rounded-lg border border-gray-700/50">
+                                    <div className="space-y-2">
+                                      {nextActions.map(
+                                        (a: string, i: number) => (
+                                          <div
+                                            key={i}
+                                            className="text-xs text-gray-300"
+                                          >
+                                            {typeof a === "string"
+                                              ? a
+                                              : JSON.stringify(a)}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  </div>{" "}
+                                </div>
+                              )}
+                            {(msg.type === "user" || msg.role === "user") && (
                               <div className="text-xs opacity-60 mt-3 pt-2 border-t border-gray-600/30">
                                 {msg.timestamp}
                               </div>
                             )}
-                           
                           </div>
                         </div>
                       );
@@ -958,45 +1219,46 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
             }`}
           >
             <div className="flex items-center gap-2 w-full ">
-              <div onClick={handleMicClick}
-              // className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-white"
-              className={`relative w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
-        isRecording ? "" : ""
-      }`}
-    
+              <div
+                onClick={handleMicClick}
+                // className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-white"
+                className={`relative w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
+                  isRecording ? "" : ""
+                }`}
               >
                 {isRecording && (
-        <span className="absolute w-[40px] h-[40px] rounded-full bg-gray-400 opacity-50 animate-ping"></span>
-      )}
-                <IoMic size={20}
-                //  color={isRecording ? "black" : "white"}
-        className="relative z-10 text-white"
-                 />
+                  <span className="absolute w-[40px] h-[40px] rounded-full bg-gray-400 opacity-50 animate-ping"></span>
+                )}
+                <IoMic
+                  size={20}
+                  //  color={isRecording ? "black" : "white"}
+                  className="relative z-10 text-white"
+                />
               </div>
               {/* Image upload */}
-      <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full bg-gray-700 hover:bg-gray-600">
-        <ImageIcon size={18} className="text-white" />
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageUpload}
-          className="hidden"
-        />
-      </label>
-      {/* Uploaded thumbnails */}
-      {uploadedImages.length > 0 && (
-        <div className="flex gap-2">
-          {uploadedImages.map((img, idx) => (
-            <img
-              key={idx}
-              src={URL.createObjectURL(img)}
-              alt="preview"
-              className="w-8 h-8 rounded object-cover border border-gray-500"
-            />
-          ))}
-        </div>
-      )}
+              {/* <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full bg-gray-700 hover:bg-gray-600">
+                <ImageIcon size={18} className="text-white" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label> */}
+              {/* Uploaded thumbnails */}
+              {uploadedImages.length > 0 && (
+                <div className="flex gap-2">
+                  {uploadedImages.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={URL.createObjectURL(img)}
+                      alt="preview"
+                      className="w-8 h-8 rounded object-cover border border-gray-500"
+                    />
+                  ))}
+                </div>
+              )}
               <input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -1011,7 +1273,7 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
             <button
               onClick={handleSubmitPrompt}
               disabled={saving || !prompt.trim()}
-              className={`w-[30px] h-full rounded-full transition-colors ${
+              className={`px-2 text-[12px] h-full rounded-full transition-colors ${
                 saving || !prompt.trim()
                   ? "bg-white text-black cursor-not-allowed"
                   : "hover:bg-gray-300"
@@ -1027,7 +1289,7 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
         <div
           onClick={() => {
             // setTab("tab");
-             dispatch(setBasicdata({ tab: "tab" }));
+            dispatch(setBasicdata({ tab: "tab" }));
             sessionStorage.setItem("tab", "tab");
           }}
           className="bg-black rounded-full p-2 absolute bottom-10 right-2 flex items-center justify-center"
@@ -1038,15 +1300,14 @@ const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length
     </div>
   );
 };
-const Page=()=>{
-   return (
+const Page = () => {
+  return (
     <Suspense fallback={<div>Loading dashboard...</div>}>
-     <PageContent />
+      <PageContent />
     </Suspense>
   );
-}
+};
 export default Page;
-
 
 // "use client";
 // import React, { useEffect, useRef, useState } from "react";
@@ -1064,7 +1325,6 @@ export default Page;
 // import { useSearchParams } from "next/navigation";
 // import TypingDots from "./components/Typingdots";
 
-
 // interface Message {
 //   type: string;
 //   message;
@@ -1081,7 +1341,6 @@ export default Page;
 //   title?: string;
 //   date?: string | Date;
 // }
-
 
 // interface ItemData {
 //   // For images
@@ -1143,7 +1402,7 @@ export default Page;
 //     let items: any[] = [];
 //     let nextActions: any[] = [];
 //     let stepByStep: any[] = [];
-    
+
 //     // For assistant messages, the structured data is in the message field as JSON
 //     if (msg?.role === "assistant" || msg?.type === "ai") {
 //       try {
@@ -1153,7 +1412,7 @@ export default Page;
 //         } else if (typeof msg?.message === "object") {
 //           parsedMessage = msg.message;
 //         }
-        
+
 //         if (parsedMessage && typeof parsedMessage === "object") {
 //           displayText = parsedMessage.response || "";
 //           items = Array.isArray(parsedMessage.items) ? parsedMessage.items : [];
@@ -1169,7 +1428,7 @@ export default Page;
 //     } else {
 //       // For user messages, use the message directly
 //       displayText = typeof msg?.message === "string" ? msg.message : "";
-      
+
 //       // Also check for existing items/nextActions/stepByStep in the message object
 //       items = Array.isArray(msg?.items) ? msg.items : [];
 //       nextActions = Array.isArray(msg?.nextActions) ? msg.nextActions : [];
@@ -1350,7 +1609,7 @@ export default Page;
 //         formData,
 //         { headers: { "Content-Type": "multipart/form-data" } }
 //       );
-     
+
 //         const data = response.data?.data;
 //         console.log(response.data?.data,typeof response.data?.data,"response.data?.data")
 //       setLink(data?.details?.link)
@@ -1394,7 +1653,7 @@ export default Page;
 //           // Attach items to this AI message
 //           const newAiMessage = {
 //             type: "ai",
-          
+
 //             message: aiResponse,
 //             role: "assistant",
 //             images: imageItems,
@@ -1483,7 +1742,7 @@ export default Page;
 //             timestamp: new Date().toLocaleTimeString(),
 //             images: [],
 //             items: [],
-//             nextActions:[], 
+//             nextActions:[],
 //             stepByStep:[]
 //           },
 //         ];
@@ -1522,9 +1781,9 @@ export default Page;
 //       getsitedetails()
 //     // }
 //   }, []);
- 
+
 //   const getMessages=async()=>{
-   
+
 //     if(!siteid){
 //       return;
 //     }
@@ -1535,7 +1794,7 @@ export default Page;
 //         if(res?.data?.messages?.length>0  )
 //         // { setConversation((prev) => [...prev, res.data.messages]);}
 //       {setConversation((prev) => [...prev, ...res.data.messages])}
-       
+
 //       }
 //       catch(e){
 //         console.log(e
@@ -1562,13 +1821,13 @@ export default Page;
 //       recognition.onresult = (event) => {
 //         const transcript = event.results[0][0].transcript;
 //         setPrompt(transcript);
-       
+
 //       };
 //  recognition.onend = () => {
 //         setIsRecording(false);
 //       };
 //       recognitionRef.current = recognition;
-     
+
 //     } else {
 //       console.warn("SpeechRecognition API not supported in this browser");
 //     }
@@ -1611,7 +1870,7 @@ export default Page;
 //               className="absolute top-50 left-50 z-0"
 //             />
 //             <div
-//               className={`duration-100 
+//               className={`duration-100
 //                  text-[#fff] text-[40px]  text-center font-bold
 //               `}
 //             >
@@ -1621,28 +1880,28 @@ export default Page;
 //             </div>
 //             <div className="flex flex-col gap-2 mt-3  items-start">
 //               <div
-//                 className={`duration-100 
+//                 className={`duration-100
 //                   text-[#CACACA] mb-4 font-bold text-center text-[16px]
 //               }`}
 //               >
 //                 Upload to WordPress
 //               </div>
 //               <div
-//                 className="duration-100 
+//                 className="duration-100
 //                   text-[#CACACA]  text-[16px]
 //               "
 //               >
 //                 • Log in to your WordPress Admin.
 //               </div>
 //               <div
-//                 className="duration-100 
+//                 className="duration-100
 //                   text-[#CACACA]  text-[16px]
 //               "
 //               >
 //                 • Go to Plugins → Add New → Upload Plugin
 //               </div>
 //               <div
-//                 className="duration-100 
+//                 className="duration-100
 //                   text-[#CACACA]  text-[16px]
 //               "
 //               >
@@ -1657,7 +1916,7 @@ export default Page;
 //               placeholder="Site url"
 //               className="border-2 z-20 border-[#fff] bg-black outline-none w-[30%]  text-white my-4 p-2 text-[14px] rounded-full"
 //             />
-           
+
 //             <button
 //               onClick={handleConnect}
 //               className="px-8 z-20 py-2 text-black text-[14px] bg-white rounded-full"
@@ -1712,7 +1971,7 @@ export default Page;
 
 //                 <div ref={chatScrollContainerRef} className="h-[100%] p-4 overflow-y-scroll">
 //                   <div className="space-y-4 ">
-//                     {conversation.map((msg: Message, idx) => { 
+//                     {conversation.map((msg: Message, idx) => {
 //                       const {
 //     displayText,
 //     items,
@@ -1745,7 +2004,7 @@ export default Page;
 //                           >
 //                             {/* AI Response Content */}
 //                             <div className="whitespace-pre-wrap leading-relaxed mb-3">
-                         
+
 //       {/* Main message area */}
 //       {msg?.message === "Typing..." ? (
 //         <div className="flex items-center">
@@ -1771,10 +2030,10 @@ export default Page;
 //     </div>
 //   ) : (
 //     <div>
-//       {typeof msg.response === "string" 
-//         ? msg.response 
+//       {typeof msg.response === "string"
+//         ? msg.response
 //         : (() => {
-//               try { 
+//               try {
 //                 return JSON.parse(msg?.message)?.response || msg.message;
 //               } catch (e) {
 //                 return msg.message;
@@ -1839,7 +2098,7 @@ export default Page;
 //                             {/* Render data items (themes, etc.) if present */}
 //                             {/* {msg?.items?.length > 0 && (
 //                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
-                               
+
 //                                 <div className="space-y-3">
 //                                   {msg?.items?.map(
 //                                     (item: ItemData, i: number) => (
@@ -1847,7 +2106,7 @@ export default Page;
 //                                         key={i}
 //                                         className="p-3  rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
 //                                       >
-                                    
+
 //                                         <div className="flex items-start justify-between mb-2">
 //                                           <div className="flex-1">
 //                                             <h4 className="text-sm font-semibold text-white mb-1">
@@ -1870,14 +2129,12 @@ export default Page;
 //                                           )}
 //                                         </div>
 
-                                        
 //                                         {item.description && (
 //                                           <p className="text-xs text-gray-300 mb-2 leading-relaxed">
 //                                             {renderMessageContent(item.description as any)}
 //                                           </p>
 //                                         )}
 
-                                        
 //                                       </div>
 //                                     )
 //                                   )}
@@ -1900,13 +2157,13 @@ export default Page;
 //                       {typeof item==="object"?(
 //                          <div className="text-sm font-semibold text-white mb-1">
 //                         {JSON.stringify(item)}
-                      
+
 //                       </div>
 //                       ):(<div className="text-sm font-semibold text-white mb-1">
 //                         {item}
-                      
+
 //                       </div>)}
-                     
+
 //                       {item?.slug && (
 //                         <p className="text-xs text-gray-400 font-mono">
 //                           {item.slug}
@@ -1934,7 +2191,7 @@ export default Page;
 //                                   {JSON.parse(msg?.message)?.stepBystep?.map((step,i)=>(
 //                                      <div key={i} className="text-xs text-gray-300">
 //                                        {step}
-//                                      </div> 
+//                                      </div>
 //                                   ))}
 //                                  </div>
 //                               </div>
@@ -1946,7 +2203,7 @@ export default Page;
 //                                   {JSON.parse(msg?.message)?.nextActions?.map((nextAction,i)=>(
 //                                      <div key={i} className="text-xs text-gray-300">
 //                                        {nextAction}
-//                                      </div> 
+//                                      </div>
 //                                   ))}
 //                                  </div>
 //                               </div>
@@ -1981,7 +2238,7 @@ export default Page;
 //                                 {msg.timestamp}
 //                               </div>
 //                             )}
-                           
+
 //                           </div>
 //                         </div>
 //                       );
@@ -2007,7 +2264,7 @@ export default Page;
 //               className={`relative w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
 //         isRecording ? "" : ""
 //       }`}
-    
+
 //               >
 //                 {isRecording && (
 //         <span className="absolute w-[40px] h-[40px] rounded-full bg-gray-400 opacity-50 animate-ping"></span>

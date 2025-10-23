@@ -9,6 +9,7 @@ import { IoCloudUploadOutline } from "react-icons/io5";
 import { MdOutlineSwitchAccount } from "react-icons/md";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/app/utils/auth";
 
 const AccountSettings: React.FC = () => {
   const router=useRouter()
@@ -17,6 +18,8 @@ const AccountSettings: React.FC = () => {
   const [subject, setSubject] = useState("");
   const [project, setProject] = useState("");
   const [message, setMessage] = useState("");
+  const {data} = useAuthContext()
+  console.log(data,"data")
 const handleLogout = () => {
   // Debug: Check what cookies exist before removal
   console.log("=== BEFORE LOGOUT ===");
@@ -123,14 +126,14 @@ const handleLogout = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-white font-medium">
-                        DemoAccount
+                        {data?.user?.name?data?.user?.name:data?.name}
                       </span>
                       <span className="text-gray-400 text-sm border border-white/10 px-2">
                         free
                       </span>
                     </div>
                     <div className="text-gray-400 text-sm">
-                      demoaccount@gmail.com · Joined about 2 hours
+                    {data?.user?.email?data?.user?.email:data?.email}
                     </div>
                   </div>
                 </div>

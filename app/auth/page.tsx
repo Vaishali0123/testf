@@ -100,7 +100,7 @@ const Page = ({ text, speed = 100, delay = 0 }: PageProps) => {
       setData(data);
       setAuth(true);
       // toast.success("Login successful!");
-      router.push("/webapp");
+   
     } catch (error) {
       console.log(error);
     }
@@ -115,6 +115,7 @@ const Page = ({ text, speed = 100, delay = 0 }: PageProps) => {
       if (res.data.success) {
         toast.success("Login successful!");
         cookieSetter(res.data.data, res.data.token);
+           router.push("/webapp");
       } else {
         // console.log("hi")
         toast.error("Seems like you don't have an account in the app.");
@@ -144,10 +145,11 @@ const Page = ({ text, speed = 100, delay = 0 }: PageProps) => {
         email,
         password,
       }, { withCredentials: true });
-    console.log(res?.data, "sign");
+   
       if (res.data.success) {
         toast.success("Signup successful!");
         cookieSetter(res.data.data, res.data.token);
+        router.push("/welcome")
         // Save email to sessionStorage
         // sessionStorage.setItem("userEmail", email);
 
@@ -317,10 +319,10 @@ const Page = ({ text, speed = 100, delay = 0 }: PageProps) => {
                   className="w-full h-8 pl-2   bg-transparent    outline-none"
                 />
               </div>
-              <div className="text-[12px] flex items-center text-white/70 mt-1">
+            {/*  <div className="text-[12px] flex items-center text-white/70 mt-1">
                 <input type="checkbox" className="mr-2 bg-transparent" />{" "}
                 Remember me
-              </div>
+              </div> */} 
             </div>
             <div className="">
               <div

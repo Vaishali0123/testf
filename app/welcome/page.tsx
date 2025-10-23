@@ -4,11 +4,52 @@ import Bg from "../../public/Pattern.svg";
 
 import { Check, Download } from "lucide-react";
 import Image from "next/image";
+import axios from "axios";
+import { useAuthContext } from "../utils/auth";
+import { NEXT_PUBLIC_API } from "../utils/config";
+import { useRouter } from "next/navigation";
 
 const Page = () => {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [mounted, setMounted] = useState(false);
+   const { data: authdata } = useAuthContext();
+   const router=useRouter()
+  const [siteUrl, setSiteUrl] = useState("");
+ const handleConnect = async () => {
+    if (!siteUrl) return alert("Please enter a site URL");
 
+    try {
+      // Ensure protocol exists
+      let formattedUrl = siteUrl.trim();
+      if (!/^https?:\/\//i.test(formattedUrl)) {
+        formattedUrl = "http://" + formattedUrl; // default to http
+      }
+
+      //  Parse with URL API to always get clean origin
+      const urlObj = new URL(formattedUrl);
+      const cleanUrl = urlObj.origin; // e.g. http://testing3.local
+
+      // Build plugins page URL
+      const pluginsUrl = `${cleanUrl}/wp-admin/plugins.php`;
+
+      // Save only clean site_url in DB
+      const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
+        email: authdata?.user?.email,
+        userId: authdata?.user?.id,
+        site_url: cleanUrl,
+      });
+
+      // console.log(res?.data?.success);
+      if (!res?.data?.success) return alert("Something went wrong");
+ 
+      // Open plugins page in new tab
+      window.open(pluginsUrl, "_blank");
+      router.push("/webapp")
+    } catch (err) {
+      console.error(err);
+      alert("Invalid site URL");
+    }
+  };
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -125,10 +166,11 @@ const Page = () => {
                     />
                   </svg>
                   <input
-                    type="text"
+                     value={siteUrl}
+              type="text"
+              onChange={(e) => setSiteUrl(e.target.value)}
                     placeholder="Website URL"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                 
                     className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-12 py-4 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-300 focus:scale-[1.02]"
                   />
                 </div>
@@ -149,7 +191,7 @@ const Page = () => {
                   </div>
                 </button>
                 <button
-                  //   onClick={handleConnect}
+                    onClick={handleConnect}
                   className="px-8 w-full z-20 py-2 text-black text-[14px] bg-white rounded-full"
                 >
                   Connect Webivus to Your Site

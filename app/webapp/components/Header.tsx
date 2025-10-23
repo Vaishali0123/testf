@@ -4,11 +4,12 @@ import { RootState } from "@/app/redux/store";
 import { useAuthContext } from "@/app/utils/auth";
 import { NEXT_PUBLIC_API } from "@/app/utils/config";
 import axios from "axios";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { FaMobileAlt } from "react-icons/fa";
-import { IoIosTabletPortrait, IoMdLaptop } from "react-icons/io";
+import { IoIosTabletPortrait, IoMdAdd, IoMdLaptop } from "react-icons/io";
+import { MdOutlineKeyboardArrowLeft, MdOutlineKeyboardArrowRight } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 
 interface Site {
@@ -27,12 +28,12 @@ const Header = () => {
   const [currentsitedata, setCurrentsitedata] = useState({});
   const { data } = useAuthContext();
   const tab = useSelector((state: RootState) => state.basicDetails.data.tab);
-
+console.log(data,"data")
   const dispatch = useDispatch();
   const getSites = async () => {
     try {
       const res = await axios.get(
-        `${NEXT_PUBLIC_API}/getUserSites/${data?._id}`
+        `${NEXT_PUBLIC_API}/getUserSites/${data?._id?data?._id:data?.user?._id}`
       );
 
       setSites(res?.data?.sites);
@@ -45,13 +46,24 @@ const Header = () => {
     setCurrentsitename(sessionStorage.getItem("siteurl") || "");
     if(data)
    { getSites();}
-  }, []);
-
+  }, [data]);
+  const router=useRouter()
+console.log(sites,"sites")
   return (
-    <div className="h-[60px]">
-      <div className="h-[100%] w-full flex px-6 gap-4 py-1 justify-center items-center ">
-        {path === "/webapp" && currentsite && (
-          <div className="flex gap-4 w-[60%] justify-end">
+    <div className="h-[60px] ">
+      <div className="h-[100%] w-full flex px-6  gap-4 py-1 justify-center items-center ">
+    
+       {path === "/webapp"  &&( <div className="w-[55%]  flex items-center justify-end">
+              <div className="px-4  flex items-center  justify-evenly ">
+                    {sites?.length>0 && path === "/webapp" &&  <MdOutlineKeyboardArrowLeft size={30} color="#888" />}
+ {/* <IoMdAdd  onClick={()=>{
+  sessionStorage.setItem("siteId","")
+  sessionStorage.setItem("siteurl","")
+ }} color="#888" className="h-[35px] w-[35px] rounded-full border-2 border-[#333]"/> */}
+    
+        {path === "/webapp"  && (
+          <div className="flex items-center max-w-[170px]  gap-1 scrollbar-hide overflow-x-auto ">
+              
             {[
               // Move the current site to the end
               ...sites.filter((site: Site) => site._id !== currentsite),
@@ -63,9 +75,10 @@ const Header = () => {
                   setCurrentsite(site._id);
                   sessionStorage.setItem("siteId", site._id);
                   sessionStorage.setItem("siteurl", site.site_url);
+                 
                 }}
-                className={`h-[50px] w-[50px] ${
-                  currentsite === site._id ? "border " : "scale-90"
+                className={` flex-shrink-0 h-[50px] w-[50px] ${
+                  currentsite === site._id ? "scale-100  " : "scale-85"
                 } rounded-full`}
               >
                 <img
@@ -77,7 +90,10 @@ const Header = () => {
             ))}
           </div>
         )}
-        {path === "/webapp" && currentsite && (
+         {sites?.length>0 && path === "/webapp" &&  <MdOutlineKeyboardArrowRight size={30} color="#888" />}
+     
+        </div></div>)}
+        {path === "/webapp"  && (
           <div className="w-[1px] h-full bg-[#626262]"></div>
         )}
 
@@ -93,11 +109,11 @@ const Header = () => {
           </div>
           <div className="text-[#626262] text-[12px]">@Webivus</div>
         </div>
-        {path === "/webapp" && currentsite && (
+        {path === "/webapp"  && (
           <div className="w-[1px] h-full bg-[#626262] "></div>
         )}
         {/* Change layouts */}
-        {path === "/webapp" && currentsite && (
+        {path === "/webapp"  && (
           <div className=" flex items-center gap-2 border border-[#888] p-1  rounded-full">
             <button
               onClick={() => {
@@ -152,11 +168,11 @@ const Header = () => {
             </button>
           </div>
         )}
-        {path === "/webapp" && currentsite && (
+        {path === "/webapp"  && (
           <div className="w-[1px] h-full bg-[#626262]"></div>
         )}
 
-        {path === "/webapp" && currentsite && (
+        {path === "/webapp"  && (
           <div className="flex items-center gap-5 w-[40%] justify-end">
             <button className="text-[14px] text-[#999] hover:text-white">
               Save Draft

@@ -39,11 +39,14 @@ export interface UserData {
   _id: string;
   email: string;
   isAuthenticated: boolean;
+  name:string;
   user:{
     _id: string;
     username: string;
     email: string;
     dp: string;
+    id:string;
+    name:string;
   }
 }
 
