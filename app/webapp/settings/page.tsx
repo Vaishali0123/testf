@@ -12,51 +12,62 @@ import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/app/utils/auth";
 
 const AccountSettings: React.FC = () => {
-  const router=useRouter()
+  const router = useRouter();
   const [option, setOption] = useState("account");
   const [file, setFile] = useState<File | null>(null);
   const [subject, setSubject] = useState("");
   const [project, setProject] = useState("");
   const [message, setMessage] = useState("");
-  const {data} = useAuthContext()
-  console.log(data,"data")
-const handleLogout = () => {
-  // Debug: Check what cookies exist before removal
-  console.log("=== BEFORE LOGOUT ===");
-  console.log("All cookies:", document.cookie);
-  console.log("authToken via Cookies.get:", Cookies.get("authToken"));
-  console.log("Current domain:", window.location.hostname);
-  console.log("Current path:", window.location.pathname);
-  
-  // Remove token from cookies with multiple attempts to cover different scenarios
-  try {
-    // Try different combinations to ensure cookie removal
-    // The cookie was set with { expires: expirationDate } so we need to match that
-    Cookies.remove("authToken");
-    Cookies.remove("authToken", { path: "/" });
-    Cookies.remove("authToken", { path: "/", domain: window.location.hostname });
-    Cookies.remove("authToken", { path: "/", domain: `.${window.location.hostname}` });
-    
-    // Force remove using document.cookie (this always works)
-    document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = `authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
-    document.cookie = `authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
-    
-    console.log("=== AFTER REMOVAL ATTEMPTS ===");
-    console.log("All cookies after removal:", document.cookie);
-    console.log("authToken via Cookies.get after removal:", Cookies.get("authToken"));
-    
-  } catch (error) {
-    console.error("Error removing cookies:", error);
-  }
+  const { data } = useAuthContext();
+  console.log(data, "data");
+  const handleLogout = () => {
+    // Debug: Check what cookies exist before removal
+    console.log("=== BEFORE LOGOUT ===");
+    console.log("All cookies:", document.cookie);
+    console.log("authToken via Cookies.get:", Cookies.get("authToken"));
+    console.log("Current domain:", window.location.hostname);
+    console.log("Current path:", window.location.pathname);
 
-  // Clear all storage
-  localStorage.clear();
-  sessionStorage.clear();
-  
-  // Redirect to login page
-  router.push("/auth");
-};
+    // Remove token from cookies with multiple attempts to cover different scenarios
+    try {
+      // Try different combinations to ensure cookie removal
+      // The cookie was set with { expires: expirationDate } so we need to match that
+      Cookies.remove("authToken");
+      Cookies.remove("authToken", { path: "/" });
+      Cookies.remove("authToken", {
+        path: "/",
+        domain: window.location.hostname,
+      });
+      Cookies.remove("authToken", {
+        path: "/",
+        domain: `.${window.location.hostname}`,
+      });
+
+      // Force remove using document.cookie (this always works)
+      document.cookie =
+        "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = `authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      document.cookie = `authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
+
+      console.log("=== AFTER REMOVAL ATTEMPTS ===");
+      console.log("All cookies after removal:", document.cookie);
+      console.log(
+        "authToken via Cookies.get after removal:",
+        Cookies.get("authToken")
+      );
+    } catch (error) {
+      console.error("Error removing cookies:", error);
+    }
+
+    // Clear all storage
+    localStorage.clear();
+    if (typeof window !== "undefined") {
+      sessionStorage.clear();
+    }
+
+    // Redirect to login page
+    router.push("/auth");
+  };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -126,23 +137,23 @@ const handleLogout = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-white font-medium">
-                        {data?.user?.name?data?.user?.name:data?.name}
+                        {data?.user?.name ? data?.user?.name : data?.name}
                       </span>
                       <span className="text-gray-400 text-sm border border-white/10 px-2">
                         free
                       </span>
                     </div>
                     <div className="text-gray-400 text-sm">
-                    {data?.user?.email?data?.user?.email:data?.email}
+                      {data?.user?.email ? data?.user?.email : data?.email}
                     </div>
                   </div>
                 </div>
-                 <button
-      onClick={handleLogout}
-      className="px-8 py-2 mt-4 rounded-lg border border-red-500 bg-red-500/10 text-red-500 font-medium hover:bg-red-500 hover:text-white hover:border-red-500 transition duration-300"
-    >
-      Log Out
-    </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-8 py-2 mt-4 rounded-lg border border-red-500 bg-red-500/10 text-red-500 font-medium hover:bg-red-500 hover:text-white hover:border-red-500 transition duration-300"
+                >
+                  Log Out
+                </button>
               </div>
             )}
 

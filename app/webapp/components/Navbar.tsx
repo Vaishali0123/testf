@@ -1,118 +1,105 @@
 "use client";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { IoNotificationsOutline, } from "react-icons/io5";
+import { RiChat1Line } from "react-icons/ri";
+import { MdOutlineDashboardCustomize, MdOutlinePayment } from "react-icons/md";
+import { LuBadgeHelp } from "react-icons/lu";
+import Link from "next/link";
+import { IoCardOutline } from "react-icons/io5";
+import { GuideContext } from "../contexts/GuideContext";
 
-import Setting from "../../../public/setting.svg";
-import Project from "../../../public/folder-open.svg";
-import dash from "../../../public/category-2.svg";
-import home from "../../../public/home.svg";
-import Upgrade from "../../../public/Icons.svg";
 const Navbar = () => {
   const path = usePathname();
   const [initial, setInitial] = useState<string>("");
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const chatIconRef = useRef<HTMLAnchorElement>(null);
+
+  // Safely get guide context (may not exist if Navbar is used outside GuideProvider)
+  const guideContext = useContext(GuideContext);
+  const contextChatRef = guideContext?.chatIconRef;
+
+  // Connect local ref to context (only if context exists)
+  useEffect(() => {
+    if (contextChatRef && chatIconRef.current) {
+      contextChatRef.current = chatIconRef.current;
+    }
+  }, [contextChatRef]);
 
   useEffect(() => {
-    const email = sessionStorage.getItem("email"); // get email from sessionStorage
-    if (email) {
-      setInitial(email.charAt(0).toUpperCase()); // take first letter
+    // Only access sessionStorage on client side
+    if (typeof window !== "undefined") {
+      setSiteId(sessionStorage.getItem("siteId"));
+      const email = sessionStorage.getItem("email");
+      if (email) {
+        setInitial(email.charAt(0).toUpperCase());
+      }
     }
   }, []);
-  return (
-    <div className="w-[100px] h-[calc(100vh-150px)] flex flex-col justify-between p-2">
-      <div className="gap-4 py-6 rounded-full border p-2 w-full flex flex-col items-center justify-evenly">
-        <Link
-          href="/webapp"
-          prefetch={false}
-          className={` flex flex-col gap-2 items-center`}
-        >
-          <Image src={home} alt="home" width={20} height={24} />
-          <div
-            className={`text-[10px]  ${
-              path === "/webapp" ? "text-[#fff]" : "text-[#909090]"
-            }`}
-          >
-            Workspace
-          </div>
-        </Link>
-        <Link
-          href="/webapp/projects"
-          className=" flex flex-col gap-2 items-center"
-        >
-          <Image src={dash} alt="dash" width={20} height={24} />
-          <div
-            className={`text-[10px]  text-center ${
-              path.startsWith("/webapp/projects")
-                ? "text-[#fff]"
-                : "text-[#909090]"
-            }`}
-          >
-            My Projects
-          </div>
-        </Link>
-        {/* <Link
-          href="/webapp/dashboard"
-          className=" flex flex-col gap-2 items-center"
-        >
-          <Image src={Project} alt="Project" width={20} height={24} />
-          <div
-            className={`text-[10px]   ${
-              path.startsWith("/webapp/dashboard")
-                ? "text-[#fff]"
-                : "text-[#909090]"
-            }`}
-          >
-            Dashboard
-          </div>
-        </Link> */}
-        {/* <Link
-          href="/webapp/settings"
-          className=" flex flex-col gap-2 items-center"
-        >
-          <Image src={Setting} alt="setting" width={20} height={24} />
-          <div
-            className={`text-[10px]  ${
-              path.startsWith("/webapp/settings")
-                ? "text-[#fff]"
-                : "text-[#909090]"
-            }`}
-          >
-            Settings
-          </div>
-        </Link> */}
-      </div>
-      <div className="py-4 px-4  rounded-full border flex flex-col items-center gap-2 justify-center">
-        <div className=" flex flex-col gap-2 items-center">
-          <IoNotificationsOutline width={20} height={24} />
-          <div
-            className={`text-[10px]   ${
-              path.startsWith("/webapp/dashboard")
-                ? "text-[#fff]"
-                : "text-[#909090]"
-            }`}
-          >
-            Dashboard
-          </div>
-        </div>
-        <div
-          className={`p-2 mt-2  flex flex-col items-center gap-2 justify-center`}
-        >
-          <Image src={Upgrade} alt="pic" width={20} height={20} />
-          <div className={`text-[10px]  font-bold text-[#CD3FB5]`}>Upgrade</div>
-        </div>
 
-        <Link
-          href={"/webapp/settings"}
-          className={`${
-            path.startsWith("/webapp/settings")
-              ? "w-[45px] h-[45px] rounded-full flex items-center justify-center text-white font-bold bg-[#CD3FB5]"
-              : "w-[45px] h-[45px] rounded-full flex items-center justify-center text-white font-bold bg-purple-600"
-          }`}
-        >
-          {initial || "V"}
-        </Link>
+  const navItems = [
+    {
+      icon: <RiChat1Line className="text-[28px] " />,
+      label: "Chat",
+      link: "/webapp",
+    },
+    {
+      icon: <MdOutlineDashboardCustomize className="text-[28px]" />,
+      label: "Dashboard",
+      link: "/webapp/dashboard",
+    },
+    // {
+    //   icon: <IoCardOutline className="text-[28px]"    />,
+    //   label: "Payments",
+    //   link: "/",
+    // },
+  ];
+
+  const bottomItems = [
+    { icon: <LuBadgeHelp className="text-[28px]" />, label: "Help" },
+  ];
+
+  return (
+    <div className="w-[50px] text-[10px] pn:max-sm:self-end pn:max-sm:hidden pn:max-sm:w-[100%] pn:max-sm:h-[100px] pn:max-sm:flex-row h-[calc(100vh-100px)] flex flex-col items-center justify-between p-2 text-white">
+      {/* Top Section */}
+      <div className="flex  flex-col items-center gap-4">
+        {navItems.map((item, idx) =>
+          !siteId && item?.label === "Dashboard" ? null : (
+            <Link
+              href={item.link}
+              key={idx}
+              ref={item.label === "Chat" ? chatIconRef : null}
+              className="relative group text-[#767676]  hover:text-white duration-300   flex flex-col items-center cursor-pointer"
+            >
+              {item.icon}
+              <div className="mt-2  text-[10px] text-[#767676] hover:text-white duration-300 ">
+                {item.label}
+              </div>
+              {/* Tooltip */}
+              <div className="absolute left-[60px] top-1/2 -translate-y-1/2 bg-[#222] text-[#767676] text-[14px] px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 whitespace-nowrap">
+                {item.label}
+              </div>
+            </Link>
+          )
+        )}
+      </div>
+
+      {/* Divider */}
+      {/* <hr className="my-4 border-[#2b2b2b] w-full" /> */}
+
+      {/* Bottom Section */}
+      <div className="flex flex-col items-center gap-4">
+        {bottomItems.map((item, idx) => (
+          <div
+            key={idx}
+            className="relative group flex flex-col items-center cursor-pointer"
+          >
+            {item.icon}
+            <div className="mt-2 text-[10px]">{item.label}</div>
+            <div className="absolute left-[60px] top-1/2 -translate-y-1/2 bg-[#222] text-white text-[12px] px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 whitespace-nowrap">
+              {item.label}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

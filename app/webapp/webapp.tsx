@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useEffect, useState } from "react";
 import { MessageCircle, RotateCcw } from "lucide-react";
@@ -9,8 +8,8 @@ import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import { CiMicrophoneOn } from "react-icons/ci";
 import Image from "next/image";
 
-interface Item{
-  url:string;
+interface Item {
+  url: string;
 }
 interface Message {
   type: string;
@@ -213,8 +212,8 @@ const Page = () => {
             : [];
 
           // Separate images and other items
-          const imageItems = itemsArray.filter((item:Item) => item.url);
-          const dataItems = itemsArray.filter((item:Item) => !item.url);
+          const imageItems = itemsArray.filter((item: Item) => item.url);
+          const dataItems = itemsArray.filter((item: Item) => !item.url);
 
           // Attach items to this AI message
           const newAiMessage = {
@@ -326,28 +325,25 @@ const Page = () => {
 
   const [tab, setTab] = useState("tab");
   useEffect(() => {
-    console.log("object")
-    getMessages()
+    console.log("object");
+    getMessages();
     setTab(sessionStorage.getItem("tab") || "tab");
     if (typeof window !== "undefined") {
       setSiteid(sessionStorage.getItem("siteId") || "");
       setSiteurl(sessionStorage.getItem("siteurl") || "");
     }
   }, []);
-  const getMessages=async()=>{
-    if(!siteid){
+  const getMessages = async () => {
+    if (!siteid) {
       return;
     }
-      try{
-        const res=await axios.get(`${NEXT_PUBLIC_API}/getmessages/${siteid}`);
-        console.log(res.data,"mkk");
-      }
-      catch(e){
-        console.log(e
-
-        )
-      }
-  }
+    try {
+      const res = await axios.get(`${NEXT_PUBLIC_API}/getmessages/${siteid}`);
+      console.log(res.data, "mkk");
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   return (
     <div
@@ -363,7 +359,7 @@ const Page = () => {
             ? "w-[100%]"
             : "w-[30%]"
         }
-        h-full border flex items-center justify-center overflow-hidden`}
+        h-full border flex flex-row-reverse bg-red-600 items-center justify-center overflow-hidden`}
       >
         {siteurl ? (
           <iframe

@@ -39,15 +39,16 @@ export interface UserData {
   _id: string;
   email: string;
   isAuthenticated: boolean;
-  name:string;
-  user:{
+  name: string;
+
+  user: {
     _id: string;
     username: string;
     email: string;
     dp: string;
-    id:string;
-    name:string;
-  }
+    id: string;
+    name: string;
+  };
 }
 
 export const AuthContextProvider = ({
@@ -66,14 +67,12 @@ export const AuthContextProvider = ({
   };
   // console.log("auth running");
   const sendTokenAndVerify = async () => {
-  
     try {
       // setLoading(true);
-      const res = await axios.get(
-        `${NEXT_PUBLIC_API}/verifyToken`, { withCredentials: true}
-      
-      );
-  
+      const res = await axios.get(`${NEXT_PUBLIC_API}/verifyToken`, {
+        withCredentials: true,
+      });
+
       if (res.data.success) {
         setAuth(true);
         setData(res.data.data);
@@ -82,7 +81,6 @@ export const AuthContextProvider = ({
         deleteToken();
       }
     } catch (error: unknown) {
-
       errorHandler(error);
 
       // setLoading(false);
@@ -93,24 +91,28 @@ export const AuthContextProvider = ({
   // useEffect(() => {
   //   sendTokenAndVerify();
   // }, []);
-useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const res = await axios.get(`${NEXT_PUBLIC_API}/verifyToken`, { withCredentials: true });
-      if (res.data.success) {
-        setAuth(true);
-        setData(res.data.data);
-      
-        router.push("/webapp");
-      } else {
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get(`${NEXT_PUBLIC_API}/verifyToken`, {
+          withCredentials: true,
+        });
+        if (res.data.success) {
+          setAuth(true);
+          setData(res.data.data);
+          // Only redirect to /webapp if user is on auth page
+          if (window.location.pathname === "/auth") {
+            router.push("/webapp");
+          }
+        } else {
+          Cookies.remove("authToken");
+        }
+      } catch {
         Cookies.remove("authToken");
       }
-    } catch {
-      Cookies.remove("authToken");
-    }
-  };
-  checkAuth();
-}, []);
+    };
+    checkAuth();
+  }, []);
 
   const contextValue = useMemo(
     () => ({

@@ -14,6 +14,7 @@ const Page = () => {
   const [mounted, setMounted] = useState(false);
    const { data: authdata } = useAuthContext();
    const router=useRouter()
+
   const [siteUrl, setSiteUrl] = useState("");
  const handleConnect = async () => {
     if (!siteUrl) return alert("Please enter a site URL");
@@ -34,8 +35,8 @@ const Page = () => {
 
       // Save only clean site_url in DB
       const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
-        email: authdata?.user?.email,
-        userId: authdata?.user?.id,
+        email: authdata?.user?.email ? authdata?.user?.email : authdata?.email,
+        userId: authdata?.user?._id ? authdata?.user?._id : authdata?._id,
         site_url: cleanUrl,
       });
 

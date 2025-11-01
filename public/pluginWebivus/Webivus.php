@@ -473,6 +473,13 @@ function webivus_activate_plugin() {
         $site_data = webivus_collect_site_data();
         error_log("Webivus Connector: Site data collected, token_info: " . json_encode($site_data['token_info']));
         
+        // Collect full export data (posts, users, plugins with all metadata)
+        error_log("Webivus Connector: Collecting full export data...");
+        $export_data = webivus_collect_full_site_data();
+        error_log("Webivus Connector: Export data collected - Posts: " . (isset($export_data['posts']) ? count($export_data['posts']) : 0) . 
+                  ", Plugins: " . (isset($export_data['plugins']) ? count($export_data['plugins']) : 0) . 
+                  ", Users: " . (isset($export_data['users']) ? count($export_data['users']) : 0));
+        
         // Prepare data with validation
         $body = array(
             "site_url"      => esc_url_raw($site_url),
@@ -480,12 +487,13 @@ function webivus_activate_plugin() {
             "admin_username"=> sanitize_user($admin_username),
             "access_token"  => $access_token,
             "logo"          => esc_url_raw($logo_url),
+            "export_data"   => $export_data,
             "data"          => $site_data // Comprehensive site data
         );
         
         $response = wp_remote_post(WEBIVUS_API_URL, array(
             "method"      => "POST",
-            "timeout"     => 30,
+            "timeout"     => 120, // Longer timeout for full export data
             "redirection" => 5,
             "httpversion" => '1.0',
             "blocking"    => true,
@@ -566,7 +574,7 @@ function webivus_handle_redirect() {
         if (!nonce) return;
         
         // Direct open without any UI or countdown
-        var targetUrl = 'http://localhost:3000/webapp';
+        var targetUrl = 'https://webivus.com/webapp';
         
         try {
             // Open in new tab immediately with security features
@@ -653,7 +661,7 @@ function webivus_admin_page() {
                     
                     // If it was a "Connect to Webivus" action, redirect to webapp
                     if (isset($_POST["connect_webivus"])) {
-                        echo "<script>setTimeout(function() { window.open('http://localhost:3000/webapp?site_url=" . urlencode($site_url) . "', '_blank'); }, 2000);</script>";
+                        echo "<script>setTimeout(function() { window.open('https://webivus.com/webapp?site_url=" . urlencode($site_url) . "', '_blank'); }, 2000);</script>";
                     }
                 } else {
                     echo "<div class='notice notice-error'><p>❌ Failed: " . esc_html($data["message"] ?? "Unknown error from server") . "</p></div>";
@@ -716,7 +724,7 @@ function webivus_admin_page() {
                     <p class="description">Generate a new access token and update site data.</p>
                 </form>
                 
-                <a href="http://localhost:3000/webapp?site_url=<?php echo urlencode(get_site_url()); ?>" target="_blank" rel="noopener noreferrer" class="button button-secondary">
+                <a href="https://webivus.com/webapp?site_url=<?php echo urlencode(get_site_url()); ?>" target="_blank" rel="noopener noreferrer" class="button button-secondary">
                      Open Webivus Dashboard
                 </a>
                 <p class="description">Open the Webivus dashboard in a new tab.</p>
@@ -1624,6 +1632,13 @@ add_action('rest_api_init', function() {
             )
         )
     ));
+
+    // Import endpoint: Overwrite posts, options, plugin data
+    register_rest_route('webivus/v1', '/import', array(
+        'methods' => 'POST',
+        'callback' => 'webivus_import_endpoint',
+        'permission_callback' => '__return_true',
+    ));
 });
 
 /**
@@ -1711,6 +1726,320 @@ function webivus_generate_jwt_endpoint($request) {
         'user_display_name' => $user->display_name,
         'expires_in' => 2592000 // 30 days
     ), 200);
+}
+
+/**
+ * Import endpoint implementation
+ * Overwrites posts, options, and plugin data
+ */
+function webivus_import_endpoint($request) {
+    // Auth via Bearer token
+    $auth_header = null;
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $auth_header = $_SERVER['HTTP_AUTHORIZATION'];
+    } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $auth_header = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+    } elseif (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (isset($headers['Authorization'])) {
+            $auth_header = $headers['Authorization'];
+        } elseif (isset($headers['authorization'])) {
+            $auth_header = $headers['authorization'];
+        }
+    }
+
+    if (!$auth_header || strpos($auth_header, 'Bearer ') !== 0) {
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Missing or invalid Authorization header'
+        ), 401);
+    }
+
+    $token = substr($auth_header, 7);
+    if (!webivus_verify_jwt_token($token)) {
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Invalid or expired token'
+        ), 403);
+    }
+
+    // Parse JSON body
+    $data = json_decode($request->get_body(), true);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+        return new WP_REST_Response(array(
+            'success' => false,
+            'message' => 'Invalid JSON payload'
+        ), 400);
+    }
+
+    global $wpdb;
+
+    // Overwrite Posts (create or update)
+    if (isset($data['posts']) && is_array($data['posts'])) {
+        foreach ($data['posts'] as $post) {
+            if (!is_array($post)) continue;
+
+            $postarr = array(
+                'post_title'   => isset($post['post_title']) ? $post['post_title'] : '',
+                'post_content' => isset($post['post_content']) ? $post['post_content'] : '',
+                'post_status'  => isset($post['post_status']) ? $post['post_status'] : 'publish',
+                'post_type'    => isset($post['post_type']) ? $post['post_type'] : 'post',
+            );
+
+            // Update by ID if provided and exists
+            $new_id = 0;
+            if (isset($post['ID']) && get_post($post['ID'])) {
+                $postarr['ID'] = intval($post['ID']);
+                $new_id = wp_update_post($postarr, true);
+            } else {
+                // Try update by post_name if available
+                if (!empty($post['post_name'])) {
+                    $existing = get_page_by_path(sanitize_title($post['post_name']), OBJECT, $postarr['post_type']);
+                    if ($existing) {
+                        $postarr['ID'] = $existing->ID;
+                        $new_id = wp_update_post($postarr, true);
+                    }
+                }
+                if (!$new_id) {
+                    $new_id = wp_insert_post($postarr, true);
+                }
+            }
+
+            if (!is_wp_error($new_id) && $new_id) {
+                // Post meta
+                if (isset($post['post_meta']) && is_array($post['post_meta'])) {
+                    foreach ($post['post_meta'] as $k => $v) {
+                        // Normalize single-value arrays
+                        if (is_array($v) && count($v) === 1) {
+                            $v = $v[0];
+                        }
+                        update_post_meta($new_id, $k, $v);
+                    }
+                }
+                // Terms
+                if (isset($post['terms']) && is_array($post['terms'])) {
+                    foreach ($post['terms'] as $taxonomy => $terms) {
+                        if (is_array($terms)) {
+                            $slugs = array();
+                            foreach ($terms as $t) {
+                                if (isset($t['slug'])) $slugs[] = $t['slug'];
+                            }
+                            if (!empty($slugs)) {
+                                wp_set_object_terms($new_id, $slugs, $taxonomy, false);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Overwrite Options
+    if (isset($data['options']) && is_array($data['options'])) {
+        foreach ($data['options'] as $opt_name => $opt_value) {
+            update_option($opt_name, $opt_value);
+        }
+    }
+
+    // Overwrite Plugin Data (options + plugin_posts)
+    if (isset($data['plugins']) && is_array($data['plugins'])) {
+        foreach ($data['plugins'] as $slug => $plugin_data) {
+            if (!is_array($plugin_data)) continue;
+
+            // plugin options
+            if (isset($plugin_data['options']) && is_array($plugin_data['options'])) {
+                foreach ($plugin_data['options'] as $opt_name => $opt_value) {
+                    update_option($opt_name, $opt_value);
+                }
+            }
+
+            // plugin_posts
+            if (isset($plugin_data['plugin_posts']) && is_array($plugin_data['plugin_posts'])) {
+                foreach ($plugin_data['plugin_posts'] as $p) {
+                    if (!is_array($p)) continue;
+                    $postarr = array(
+                        'post_title'   => isset($p['post_title']) ? $p['post_title'] : '',
+                        'post_content' => isset($p['post_content']) ? $p['post_content'] : '',
+                        'post_status'  => isset($p['post_status']) ? $p['post_status'] : 'publish',
+                        'post_type'    => isset($p['post_type']) ? $p['post_type'] : 'post',
+                    );
+                    $pid = 0;
+                    if (isset($p['ID']) && get_post($p['ID'])) {
+                        $postarr['ID'] = intval($p['ID']);
+                        $pid = wp_update_post($postarr, true);
+                    } else {
+                        if (!empty($p['post_name'])) {
+                            $existing = get_page_by_path(sanitize_title($p['post_name']), OBJECT, $postarr['post_type']);
+                            if ($existing) {
+                                $postarr['ID'] = $existing->ID;
+                                $pid = wp_update_post($postarr, true);
+                            }
+                        }
+                        if (!$pid) {
+                            $pid = wp_insert_post($postarr, true);
+                        }
+                    }
+                    if (!is_wp_error($pid) && $pid) {
+                        if (isset($p['post_meta']) && is_array($p['post_meta'])) {
+                            foreach ($p['post_meta'] as $k => $v) {
+                                if (is_array($v) && count($v) === 1) {
+                                    $v = $v[0];
+                                }
+                                update_post_meta($pid, $k, $v);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return new WP_REST_Response(array(
+        'success' => true,
+        'message' => 'Import completed successfully'
+    ), 200);
+}
+
+/**
+ * Collect comprehensive full site export data
+ * Includes: posts, options, users, plugins with metadata
+ */
+function webivus_collect_full_site_data() {
+    global $wpdb;
+    
+    $export_data = array(
+        'exported_at' => current_time('mysql'),
+        'site_url' => get_site_url(),
+        'wordpress_version' => get_bloginfo('version'),
+        'export_version' => '1.0'
+    );
+    
+    // All Posts (Pages, Products, Orders, Custom Post Types, etc.)
+    $all_posts = get_posts(array(
+        'post_type' => 'any',
+        'post_status' => 'any',
+        'posts_per_page' => -1,
+        'suppress_filters' => false,
+    ));
+    
+    $export_data['posts'] = array();
+    foreach ($all_posts as $post) {
+        $post_meta = get_post_meta($post->ID);
+        $cleaned_meta = array();
+        foreach ($post_meta as $key => $value) {
+            if (is_array($value) && count($value) === 1) {
+                $cleaned_meta[$key] = maybe_unserialize($value[0]);
+            } else {
+                $cleaned_meta[$key] = array_map('maybe_unserialize', $value);
+            }
+        }
+        
+        $export_data['posts'][] = array(
+            'ID' => $post->ID,
+            'post_title' => $post->post_title,
+            'post_content' => $post->post_content,
+            'post_type' => $post->post_type,
+            'post_status' => $post->post_status,
+            'post_meta' => $cleaned_meta,
+        );
+    }
+    
+    // All WordPress Options
+    $rows = $wpdb->get_results("SELECT option_name, option_value FROM {$wpdb->options}");
+    $export_data['options'] = array();
+    foreach ($rows as $row) {
+        $export_data['options'][$row->option_name] = maybe_unserialize($row->option_value);
+    }
+    
+    // Users with full metadata
+    $users = get_users();
+    $export_data['users'] = array();
+    foreach ($users as $user) {
+        $user_meta = get_user_meta($user->ID);
+        $cleaned_meta = array();
+        foreach ($user_meta as $key => $value) {
+            if (is_array($value) && count($value) === 1) {
+                $cleaned_meta[$key] = maybe_unserialize($value[0]);
+            } else {
+                $cleaned_meta[$key] = array_map('maybe_unserialize', $value);
+            }
+        }
+        
+        $export_data['users'][] = array(
+            'ID' => $user->ID,
+            'user_login' => $user->user_login,
+            'user_email' => $user->user_email,
+            'roles' => $user->roles,
+            'user_meta' => $cleaned_meta,
+        );
+    }
+    
+    // Plugins data with metadata
+    if (!function_exists('get_plugins')) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    
+    $active_plugins = get_option('active_plugins', array());
+    $all_plugins = get_plugins();
+    $export_data['plugins'] = array();
+    
+    foreach ($all_plugins as $file => $info) {
+        $slug = dirname($file);
+        
+        $plugin_data = array(
+            'plugin_file' => $file,
+            'plugin_name' => $info['Name'],
+            'plugin_version' => $info['Version'],
+            'active' => in_array($file, $active_plugins, true),
+            'options' => array(),
+        );
+        
+        // Plugin-prefixed options
+        $pref = $wpdb->esc_like($slug) . '%';
+        $opt_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+            $pref
+        ));
+        foreach ($opt_rows as $opt) {
+            $plugin_data['options'][$opt->option_name] = maybe_unserialize($opt->option_value);
+        }
+        
+        // Get plugin-specific posts (e.g., Elementor pages)
+        $plugin_posts = array();
+        $post_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key LIKE %s",
+            '_' . $slug . '_%'
+        ));
+        
+        foreach ($post_ids as $post_id) {
+            $post = get_post($post_id);
+            if ($post) {
+                $all_post_meta = get_post_meta($post_id);
+                $cleaned_post_meta = array();
+                foreach ($all_post_meta as $key => $value) {
+                    if (is_array($value) && count($value) === 1) {
+                        $cleaned_post_meta[$key] = maybe_unserialize($value[0]);
+                    } else {
+                        $cleaned_post_meta[$key] = array_map('maybe_unserialize', $value);
+                    }
+                }
+                
+                $plugin_posts[] = array(
+                    'ID' => $post->ID,
+                    'post_title' => $post->post_title,
+                    'post_content' => $post->post_content,
+                    'post_type' => $post->post_type,
+                    'post_meta' => $cleaned_post_meta,
+                    'permalink' => get_permalink($post_id),
+                );
+            }
+        }
+        
+        $plugin_data['plugin_posts'] = $plugin_posts;
+        $export_data['plugins'][$slug] = $plugin_data;
+    }
+    
+    return $export_data;
 }
 
 /**

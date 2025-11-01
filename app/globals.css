@@ -35,33 +35,39 @@ body {
 }
 .border {
   border: 1px solid #373737;
-}
-/* Works in Chrome, Edge, Safari */
+} /* ---------------------------
+   Chromium / WebKit browsers
+   (Chrome, Edge, Opera, Safari)
+   --------------------------- */
 ::-webkit-scrollbar {
-  width: 10px; /* scrollbar width */
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1111110b; /* track background */
-}
-
-::-webkit-scrollbar-thumb {
-  background: #e44a4a; /* scrollbar handle */
+  background: rgba(17, 17, 17, 0.04); /* subtle track */
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #888; /* hover effect */
+::-webkit-scrollbar-thumb {
+  background: #e44a4a; /* default thumb color */
+  border-radius: 10px;
+  border: 2px solid transparent; /* optional padding effect */
+  background-clip: padding-box;
 }
 
-/* Firefox scrollbar (needs separate rules) */
+::-webkit-scrollbar-thumb:hover {
+  background: #181818;
+}
+
+/* ---------------------------
+   Firefox
+   (no gradients here) 
+   scrollbar-color accepts two colors: thumb, track
+   --------------------------- */
 * {
-  scrollbar-width: thin; /* "auto" | "thin" | "none" */
-  scrollbar-color: linear-gradient(
-    180deg,
-    #4f46e5,
-    #06b6d4
-  ); /* thumb | track */
+  scrollbar-width: thin; /* auto | thin | none */
+  scrollbar-color: #2d2d2d rgba(17, 17, 17, 0.04); /* thumb, track */
 }
 
 .svg-border {

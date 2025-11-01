@@ -22,7 +22,7 @@ interface Site {
     site_url: string;
     logo: string;
     title: string;
-  }
+  };
 }
 
 const Page = () => {
@@ -31,7 +31,7 @@ const Page = () => {
   const [addproject, setAddproject] = useState(false);
   const [siteUrl, setSiteUrl] = useState("");
   const { data } = useAuthContext();
-console.log(data,"data")
+
   const handleConnect = async () => {
     if (!data) return alert("User data is missing");
     if (!siteUrl) return alert("Please enter a site URL");
@@ -52,7 +52,7 @@ console.log(data,"data")
 
       // Save only clean site_url in DB
       const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
-        email: data?.email? data?.email:data?.user?.email,
+        email: data?.email ? data?.email : data?.user?.email,
         site_url: cleanUrl,
       });
 
@@ -74,7 +74,7 @@ console.log(data,"data")
       const res = await axios.get(
         `${NEXT_PUBLIC_API}/getUserSites/${data?.user?._id || data?._id}`
       );
-     
+
       if (res?.data?.success) {
         setSites(res?.data?.sites);
       }
@@ -88,11 +88,18 @@ console.log(data,"data")
     }
   }, [data]);
   return (
-    <div className="flex w-full overflow-hidden h-full border">
+    <div className="flex w-full overflow-hidden h-full ">
       <div className="w-full  flex flex-wrap gap-4 p-4">
         <div
-          onClick={() => setAddproject(true)}
-          className="w-[320px] h-[200px] bg-gradient-to-bl flex items-center justify-center flex-col from-[#d9d9d900] via-[#7373730d] to-[#737373]   border hover:scale-105 duration-300"
+          onClick={() => {
+            // setAddproject(true);
+            if (typeof window !== "undefined") {
+              sessionStorage.removeItem("siteId");
+              sessionStorage.removeItem("siteurl");
+            }
+            router.push("/webapp");
+          }}
+          className="w-[320px] h-[200px] bg-gradient-to-bl flex items-center justify-center flex-col from-[#d9d9d900] via-[#7373730d] to-[#737373] rounded-3xl  border hover:scale-105 duration-300"
         >
           <IoIosAdd size={40} color="#BDC1CA" />
           <div className="text-[#BDC1CA]">New Project</div>
@@ -101,33 +108,41 @@ console.log(data,"data")
           sites.map((site: Site, index) => (
             <div
               key={index}
-             
-              className="w-[320px] h-[200px] bg-gradient-to-bl flex items-center justify-center flex-col from-[#d9d9d900] via-[#7373730d] to-[#737373]   border hover:scale-105 duration-300"
+              className="w-[320px] h-[200px] bg-gradient-to-bl overflow-hidden flex items-center justify-center flex-col from-[#d9d9d900] via-[#7373730d] to-[#737373] rounded-3xl  border hover:scale-105 duration-300"
             >
               <img
                 src={site?.logo}
                 alt="pic"
                 className="w-full h-[70%] object-cover"
               />
-              <div className="w-full h-[30%] flex flex-row ">
-                <div  onClick={() => {
-                sessionStorage.setItem("siteId", site._id);
-                sessionStorage.setItem("siteurl", site.site_url);
-                router.push("/webapp");
-              }} className="w-[85%] h-[100%]  px-2 flex flex-col justify-center">
-                   <div className="font-bold text-[#bcbcbc]">
-                  {site?.data?.site_name || "Site Title"}
+              <div className="w-full bg-[#18191C] rounded-2xl h-[30%] flex flex-row ">
+                <div
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      sessionStorage.setItem("siteId", site._id);
+                      sessionStorage.setItem("siteurl", site.site_url);
+                    }
+                    router.push("/webapp");
+                  }}
+                  className="w-[85%] h-[100%]  px-2 flex flex-col justify-center"
+                >
+                  <div className="font-bold text-[#fff]">
+                    {site?.data?.site_name || "Site Title"}
+                  </div>
+                  <div className="text-[12px]">Lets start editing..</div>
                 </div>
-                <div className="text-[12px]">Lets start editing..</div>
-                </div>
-               <Link href={`/webapp/dashboard?siteId=${site._id}`} 
-                className="w-[20%]  justify-center items-center flex h-[100%]">
-                <BsThreeDotsVertical size={15} color="#fff" className="hover:text-[#888] cursor-pointer"/>
-              </Link>
-            </div>
-           
+                <Link
+                  href={`/webapp/dashboard?siteId=${site._id}`}
+                  className="w-[20%]  justify-center items-center flex h-[100%]"
+                >
+                  <BsThreeDotsVertical
+                    size={15}
+                    color="#fff"
+                    className="hover:text-[#888] cursor-pointer"
+                  />
+                </Link>
               </div>
-                 
+            </div>
           ))}
         {addproject && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center h-screen z-50">

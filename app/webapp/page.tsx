@@ -12,6 +12,18 @@ import { setBasicdata } from "../redux/slices/basicDetails";
 import { useAuthContext } from "../utils/auth";
 import { useSearchParams } from "next/navigation";
 import TypingDots from "./components/Typingdots";
+import { BsSend } from "react-icons/bs";
+import Bg from "../../public/flowbg.png";
+import { FaAnglesLeft } from "react-icons/fa6";
+import { GoWorkflow } from "react-icons/go";
+import { CgWebsite } from "react-icons/cg";
+import { PiMonitor } from "react-icons/pi";
+import { FiExternalLink, FiUser } from "react-icons/fi";
+import { MdAspectRatio } from "react-icons/md";
+import Logo from "../../public/Logo.png";
+import { FaWordpress } from "react-icons/fa";
+import { useContext } from "react";
+import { GuideContext } from "./contexts/GuideContext";
 
 // Type definitions
 interface Message {
@@ -43,9 +55,15 @@ interface SiteData {
 }
 
 interface AuthData {
+  email?: string;
+  _id?: string;
   user?: {
     email?: string;
     id?: string;
+    _id?: string;
+    username?: string;
+    dp?: string;
+    name?: string;
   };
 }
 
@@ -169,32 +187,46 @@ const normalizeBackendResponse = (
   };
 };
 const PageContent = () => {
+  const [siteTab, setSitetab] = useState("website");
+  const [layoutMode, setLayoutMode] = useState<
+    "default" | "fullscreen" | "chat-focused"
+  >("default");
   // Auto-scroll refs (defined early)
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const workflowButtonRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const siteurlquery = searchParams.get("site_url");
   const [siteUrl, setSiteUrl] = useState("");
   const email = "sheeratgupta@gmail.com";
   const { data: authdata } = useAuthContext() as { data: AuthData };
-  const [siteid, setSiteid] = useState(sessionStorage.getItem("siteId") || "");
-  const [siteurl, setSiteurl] = useState(
-    sessionStorage.getItem("siteurl") || ""
-  );
+
+  // Safely get guide context (may not exist if page is used outside GuideProvider)
+  const guideContext = useContext(GuideContext);
+  const contextWorkflowRef = guideContext?.workflowButtonRef;
+
+  const [siteid, setSiteid] = useState("");
+  const [siteurl, setSiteurl] = useState("");
+
+  // Connect workflow button ref to context (only if context exists)
+  useEffect(() => {
+    if (contextWorkflowRef && workflowButtonRef.current) {
+      contextWorkflowRef.current = workflowButtonRef.current;
+    }
+  }, [contextWorkflowRef]);
+
+  // Initialize siteid and siteurl from sessionStorage on client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSiteid(sessionStorage.getItem("siteId") || "");
+      setSiteurl(sessionStorage.getItem("siteurl") || "");
+    }
+  }, []);
+
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [sitedata, setSitedata] = useState<SiteData>({});
   const dispatch = useDispatch();
-  const safeJsonParse = async (input: unknown) => {
-    // If it's already an object, return it
-    if (input === null || input === undefined) return input;
-    if (typeof input !== "string") return input;
-    try {
-      return JSON.parse(input);
-    } catch (e) {
-      // Not JSON — return original string
-      return input;
-    }
-  };
+
   const normalizeMessage = (msg: Message): NormalizedMessage => {
     if (!msg) {
       return {
@@ -354,12 +386,20 @@ const PageContent = () => {
       const pluginsUrl = `${cleanUrl}/wp-admin/plugins.php`;
 
       // Save only clean site_url in DB
-      const res = await axios.post("http://localhost:7002/api/site", {
-        email: authdata?.user?.email,
-        userId: authdata?.user?.id,
+      const res = await axios.post(`${NEXT_PUBLIC_API}/site`, {
+        email: authdata?.user?.email ? authdata?.user?.email : authdata?.email,
+        userId: authdata?.user?._id ? authdata?.user?._id : authdata?._id,
         site_url: cleanUrl,
       });
 
+      if (res?.data?.success) {
+        if (res?.data?.site?.status === "active") {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("siteId", res?.data?.site?._id);
+            sessionStorage.setItem("siteurl", res?.data?.site?.site_url);
+          }
+        }
+      }
       // console.log(res?.data?.success);
       if (!res?.data?.success) return alert("Something went wrong");
 
@@ -466,7 +506,6 @@ const PageContent = () => {
       });
 
       const rawData = response.data?.data;
-      console.log(rawData, typeof rawData, "response.data?.data");
 
       // Normalize the backend response
       const normalizedData = normalizeBackendResponse(rawData);
@@ -535,52 +574,6 @@ const PageContent = () => {
             );
           }
 
-          // Optional debug/system messages
-          // if (data.agentUsed && data.classificationReasoning) {
-          //   updated.push({
-          //     type: "system",
-          //     response: ` Routed to: ${data.agentUsed} | Reason: ${data.classificationReasoning}`,
-          //     timestamp: new Date().toLocaleTimeString(),
-          //     images: [],
-          //     items: [],
-          //      nextActions:[],
-          //     stepByStep:[]
-          //   });
-          // }
-
-          // if (data.suggestions?.length > 0) {
-          //   updated.push({
-          //     type: "ai",
-          //     message:
-          //       " Suggestions:\n" +
-          //       data.suggestions.map((s: string) => `• ${s}`).join("\n"),
-          //     timestamp: new Date().toLocaleTimeString(),
-          //     images: [],
-          //     items: [],
-          //   });
-          // }
-
-          // if (data.refreshNeeded || shouldShowPreview) {
-          //   setShowPreview(true);
-          //   setIframeKey((prev) => prev + 1);
-          //   updated.push({
-          //     type: "ai",
-          //     message: "👁️ Preview updated! Check the preview panel.",
-          //     timestamp: new Date().toLocaleTimeString(),
-          //     images: [],
-          //     items: [],
-          //      nextActions:[],
-          //     stepByStep:[]
-          //   });
-          // }
-
-          // if (
-          //   data.action?.includes("create") ||
-          //   data.action?.includes("delete")
-          // ) {
-          //   fetchWordPressStats();
-          // }
-
           return updated;
         } else {
           // Handle error case
@@ -601,7 +594,6 @@ const PageContent = () => {
         }
       });
     } catch (err) {
-      console.error("AI error:", err);
       setConversation((prev) => {
         const withoutProcessing = prev.slice(0, -1);
         return [
@@ -643,12 +635,12 @@ const PageContent = () => {
   const tab = useSelector((state: RootState) => state.basicDetails.data.tab);
   useEffect(() => {
     getMessages();
-    // setTab(sessionStorage.getItem("tab") || "tab");
-    // if (typeof window !== "undefined") {
-    setSiteid(sessionStorage.getItem("siteId") || "");
-    setSiteurl(sessionStorage.getItem("siteurl") || "");
+    // Only access sessionStorage on client side
+    if (typeof window !== "undefined") {
+      setSiteid(sessionStorage.getItem("siteId") || "");
+      setSiteurl(sessionStorage.getItem("siteurl") || "");
+    }
     getsitedetails();
-    // }
   }, []);
   const getMessages = async () => {
     if (!siteid) {
@@ -660,7 +652,7 @@ const PageContent = () => {
 
       if (res?.data?.messages?.length > 0) {
         // { setConversation((prev) => [...prev, res.data.messages]);}
-        console.log(res?.data?.messages, "messages");
+
         setConversation((prev) => [...prev, ...res.data.messages]);
       }
     } catch (e) {
@@ -721,106 +713,194 @@ const PageContent = () => {
 
   return (
     <div
-      className={`duration-200  flex w-full items-center justify-center h-full ${
+      className={`duration-200 flex-col sm:flex-row-reverse p-2 flex  w-full items-center justify-center h-full ${
         reload === false ? "border-transparent gap-2" : "border-transparent"
       }`}
     >
       <div
+        style={{
+          backgroundImage: `url(${Bg.src})`,
+          backgroundPosition: "top",
+          backgroundRepeat: "repeat",
+        }}
         className={`${
-          tab === "tab" && siteurl
+          layoutMode === "fullscreen"
+            ? "w-[100%]"
+            : layoutMode === "chat-focused"
+            ? "w-[30%]"
+            : tab === "tab" && siteurl
             ? " w-[70%]"
             : tab === "laptop" || !siteurl
             ? "w-[100%]"
             : "w-[30%]"
         }
-        h-full border flex items-center justify-center overflow-hidden`}
+        ${!siteurl ? "h-screen sm:h-full" : "h-full"} ${
+          siteurl ? "pn:max-sm:hidden" : ""
+        } border border-[#ffffff10]   bg-contain bg-[#2c2d3061] flex flex-col rounded-2xl items-center justify-center overflow-hidden`}
       >
-        {siteurl ? (
-          <iframe
-            src={link ? link : siteurl}
-            className="w-full h-full "
-            style={{ border: "none" }}
-          />
-        ) : (
-          <div className="w-full h-full  flex items-center justify-center flex-col">
-            <Image
-              src={purpleeffect}
-              alt="pic"
-              width={300}
-              height={300}
-              className="absolute top-50 left-50 z-0"
+        <div className="h-[40px]   w-full bg-[#2C2D30] flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <FaAnglesLeft
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => {
+                // Cycle through: default -> fullscreen -> chat-focused -> default
+                if (layoutMode === "default") {
+                  setLayoutMode("fullscreen");
+                } else if (layoutMode === "fullscreen") {
+                  setLayoutMode("chat-focused");
+                } else {
+                  setLayoutMode("default");
+                }
+              }}
             />
-            <div
-              className={`duration-100 
-                 text-[#fff] text-[40px]  text-center font-bold
-              `}
-            >
-              Start <span className="text-[#7A7A7A]">out</span> with
-              <span className="text-[#7A7A7A]">out</span> a{" "}
-              <span className="text-[#7A7A7A]">doubt</span>
+            <div className="text-[12px] bg-[#1C1C1C] text-white border-2 border-[#1C1C1C] flex items-center rounded-full">
+              <div
+                onClick={() => setSitetab("website")}
+                className={`px-2 py-1 flex gap-2   ${
+                  siteTab === "website" && " bg-white text-black"
+                }  items-center rounded-full`}
+              >
+                <CgWebsite />
+                Website
+              </div>
+              <div
+                ref={workflowButtonRef}
+                onClick={() => setSitetab("workflow")}
+                className={`px-2 py-1 flex gap-2  items-center ${
+                  siteTab === "workflow" && " bg-white text-black"
+                }    rounded-full`}
+              >
+                <GoWorkflow />
+                <div> Workflow </div>
+              </div>
             </div>
-            <div className="flex flex-col gap-2 mt-3  items-start">
+          </div>
+          <div className="flex  items-center gap-4">
+            <div
+              className="text-[14px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => {
+                // Cycle through: default -> fullscreen -> chat-focused -> default
+                if (layoutMode === "default") {
+                  setLayoutMode("fullscreen");
+                } else if (layoutMode === "fullscreen") {
+                  setLayoutMode("chat-focused");
+                } else {
+                  setLayoutMode("default");
+                }
+              }}
+            >
+              <MdAspectRatio />
+            </div>
+            <FiExternalLink
+              className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                !siteurl ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              onClick={() => {
+                if (siteurl) {
+                  const urlToOpen = link || siteurl;
+                  window.open(urlToOpen, "_blank", "noopener,noreferrer");
+                }
+              }}
+            />
+          </div>
+        </div>
+        {siteTab === "website" ? (
+          siteurl ? (
+            <iframe
+              src={link ? link : siteurl}
+              className="w-full h-full "
+              style={{ border: "none" }}
+            />
+          ) : (
+            <div className="w-full  h-full flex items-center justify-center flex-col p-4">
               <div
                 className={`duration-100 
-                  text-[#CACACA] mb-4 font-bold text-center text-[16px]
-              }`}
-              >
-                Upload to WordPress
-              </div>
-              <div
-                className="duration-100 
-                  text-[#CACACA]  text-[16px]
+                 text-[#fff] text-[40px]  text-center font-bold
+              `}
+              ></div>
+              <div className="flex flex-col gap-3 mt-3  items-start w-full max-w-xl">
+                <div
+                  className="duration-100 
+                    text-[#CACACA] text-sm sm:text-[16px]
               "
-              >
-                • Log in to your WordPress Admin.
-              </div>
-              <div
-                className="duration-100 
-                  text-[#CACACA]  text-[16px]
+                >
+                  • Install Webivus Plugin
+                </div>
+                <button
+                  onClick={() => {
+                    window.location.href = "/api/download-plugin";
+                  }}
+                  className="px-4 sm:px-8 z-20 py-2 hover:opacity-[80%] items-center justify-center transition-opacity font-semibold mt-2 text-black text-xs sm:text-[14px] bg-[#fff] rounded-xl flex flex-row gap-2"
+                >
+                  Install Webivus for{" "}
+                  <FaWordpress
+                    size={20}
+                    className="sm:w-6 sm:h-6"
+                    color="#01579B"
+                  />
+                </button>
+                <div
+                  className="duration-100 
+                    text-[#CACACA] text-sm sm:text-[16px]
               "
-              >
-                • Go to Plugins → Add New → Upload Plugin
-              </div>
-              <div
-                className="duration-100 
-                  text-[#CACACA]  text-[16px]
-              "
-              >
-                • Choose the .zip file and click Install Now.
+                >
+                  • Log in to your WordPress Admin.
+                </div>
+                <input
+                  value={siteUrl}
+                  type="text"
+                  onChange={(e) => setSiteUrl(e.target.value)}
+                  required
+                  placeholder="Enter Website URL"
+                  className="z-20 border-l-2 border-[#A7A0F8] bg-transparent outline-none w-full sm:max-w-[80%] text-white my-4 p-2 text-sm sm:text-[18px] font-semibold"
+                />
+                <button
+                  onClick={handleConnect}
+                  className="px-4 sm:px-8 z-20 hover:opacity-[80%] w-full sm:w-auto sm:min-w-[30%] items-center justify-center transition-opacity py-2 text-black text-xs sm:text-[14px] bg-white rounded-xl space-x-2 font-semibold flex gap-2 flex-row"
+                >
+                  Connect{" "}
+                  <span>
+                    <FaWordpress
+                      size={20}
+                      className="sm:w-6 sm:h-6"
+                      color="#01579B"
+                    />
+                  </span>
+                </button>
+                <div
+                  className="duration-100 
+                    text-[#CACACA] text-sm sm:text-[16px]
+                "
+                >
+                  • Go to Plugins → Add New → Upload Webivus Plugin
+                </div>
+                <div
+                  className="duration-100 
+                    text-[#CACACA] text-sm sm:text-[16px]
+                "
+                >
+                  • Choose the .zip file and click Install Now.
+                </div>
               </div>
             </div>
-            <input
-              value={siteUrl}
-              type="text"
-              onChange={(e) => setSiteUrl(e.target.value)}
-              required
-              placeholder="Site url"
-              className="border-2 z-20 border-[#fff] bg-black outline-none w-[30%]  text-white my-4 p-2 text-[14px] rounded-full"
-            />
-
-            <button
-              onClick={handleConnect}
-              className="px-8 z-20 py-2 text-black text-[14px] bg-white rounded-full"
-            >
-              Connect Webivus to Your Site
-            </button>
-            <button
-              onClick={() => {
-                window.location.href = "/api/download-plugin";
-              }}
-              className="px-8 z-20 py-2  mt-2 text-white text-[14px] bg-[#561735] rounded-full"
-            >
-              Download Webivus Plugin
-            </button>
-          </div>
+          )
+        ) : (
+          // PRD SEction
+          <div className="w-full h-full">{/* Fetch streamMessages  */}</div>
         )}
       </div>
       {/* Chatting Area */}
-      {siteurl && (
+      {siteurl && layoutMode !== "fullscreen" && (
         <div
           className={`duration-200 ${
-            tab === "laptop" ? "hidden" : tab === "tab" ? "w-[30%]" : "w-[70%]"
-          } relative flex flex-col w-[30%] border p-2 overflow-hidden justify-center h-full
+            tab === "laptop"
+              ? "hidden"
+              : layoutMode === "chat-focused"
+              ? "w-[100%] sm:w-[70%]"
+              : tab === "tab"
+              ? "w-[100%] sm:w-[30%]"
+              : "w-[70%]"
+          } relative flex flex-col  overflow-hidden h-full
 
         `}
         >
@@ -828,33 +908,17 @@ const PageContent = () => {
           <div
             className={`${
               reload === false
-                ? "h-[calc(100vh-150px)] w-[100%]  items-start justify-start flex "
+                ? "h-[calc(100vh-150px)]  w-[100%] items-start justify-start flex "
                 : "hidden"
             }`}
           >
             {reload === false && (
-              <div className="h-[100%] bg-[#0c0c0c] w-[100%] mt-2 flex flex-col">
-                <div className="flex items-center justify-between p-3 border-b border-gray-800">
-                  <div className="flex items-center space-x-2">
-                    <MessageCircle size={16} className="text-blue-400" />
-                    {/* <span className="text-sm font-semibold text-gray-300">
-                      Conversation (Thread: {threadId.slice(-6)})
-                    </span> */}
-                  </div>
-                  <button
-                    onClick={resetConversation}
-                    className="text-gray-400 hover:text-white transition-colors"
-                    title="Clear conversation"
-                  >
-                    <RotateCcw size={14} />
-                  </button>
-                </div>
-
+              <div className="h-[100%] w-[100%] flex flex-col">
                 <div
                   ref={chatScrollContainerRef}
                   className="h-[100%] p-4 overflow-y-scroll"
                 >
-                  <div className="space-y-4 ">
+                  <div className="space-y-6 ">
                     {conversation.map((msg, idx) => {
                       const {
                         displayText,
@@ -875,156 +939,208 @@ const PageContent = () => {
                       const extraImages = Array.isArray(imagesArray)
                         ? imagesArray
                         : [];
+
+                      // Generate dummy date for messages
+                      const getDummyDate = () => {
+                        if (msg.type === "user" || msg.role === "user") {
+                          return "02:22 AM";
+                        } else {
+                          return "Oct 17, 2025, 5:22 PM";
+                        }
+                      };
+
+                      const isUserMessage =
+                        msg.type === "user" || msg.role === "user";
+
                       return (
                         <div
                           key={idx}
                           className={`flex ${
-                            msg.type === "user" || msg.role === "user"
-                              ? "justify-end"
-                              : msg.type === "system" ||
-                                msg.type === "ai" ||
-                                msg.role === "assistant"
-                              ? "justify-start"
-                              : "justify-start"
-                          }`}
+                            isUserMessage
+                              ? "justify-end items-end"
+                              : "justify-start items-start"
+                          } gap-3`}
                         >
+                          {/* Avatar/Logo for AI messages (left side) */}
+                          {!isUserMessage && msg.type !== "system" && (
+                            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-[#2c2d30] border border-[#ffffff10] flex items-center justify-center">
+                              <Image
+                                src={Logo}
+                                alt="Webivus"
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-contain p-1"
+                              />
+                            </div>
+                          )}
+
                           <div
-                            className={`max-w-[85%] p-4 rounded-lg text-sm ${
-                              msg.type === "user" || msg.role === "user"
-                                ? "bg-purple-800/60 text-white rounded-br-sm"
-                                : msg.type === "system"
-                                ? " text-gray-300 rounded text-xs opacity-80"
-                                : "bg-gradient-to-br from-white/5 to-white/10 text-gray-100 rounded-bl-sm "
-                            }`}
+                            className={`flex flex-col ${
+                              isUserMessage ? "items-end" : "items-start"
+                            } max-w-[75%] sm:max-w-[80%]`}
                           >
-                            {/* AI Response Content */}
-                            <div className="whitespace-pre-wrap leading-relaxed mb-3">
-                              {/* Main message area */}
-                              {msg?.message === "Typing..." ? (
-                                <div className="flex items-center">
-                                  <TypingDots size={8} color="#888" />
-                                </div>
-                              ) : (
-                                <div>
-                                  {displayText ??
-                                    // If there's no textual display value, but msg.message exists as object, render it safely
-                                    (typeof msg?.message === "object" ? (
-                                      <pre className="whitespace-pre-wrap bg-red-800 text-xs text-gray-300">
-                                        {JSON.stringify(msg.message, null, 2)}
-                                      </pre>
-                                    ) : (
-                                      <span className="text-xs text-gray-300">
-                                        —
-                                      </span>
-                                    ))}
-                                </div>
-                              )}
-                              {/* {msg.message === "Typing..." ? (
-    <div className="flex items-center">
-      <TypingDots size={8} color="#888" />
-    </div>
-  ) : (
-    <div>
-      {typeof msg.response === "string" 
-        ? msg.response 
-        : (() => {
-              try { 
-                return JSON.parse(msg?.message)?.response || msg.message;
-              } catch (e) {
-                return msg.message;
-              }
-            })()
-      }
-    </div>
-  )} */}
+                            {/* Date and sender name */}
+                            <div
+                              className={`flex items-center gap-2 mb-1 px-2 ${
+                                isUserMessage ? "flex-row-reverse" : ""
+                              }`}
+                            >
+                              <span className="text-xs text-gray-400">
+                                {getDummyDate()}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {isUserMessage ? "You" : "Webivus"}
+                              </span>
                             </div>
 
-                            {/* Render images if present */}
-                            {(imageItems?.length > 0 ||
-                              extraImages?.length > 0) && (
-                              <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {[...imageItems, ...extraImages].map(
-                                    (image, i) => {
-                                      // If image is a raw string URL (rare), handle it
-                                      const url =
-                                        typeof image === "string"
-                                          ? image
-                                          : String(
-                                              (image as Record<string, unknown>)
-                                                ?.url ??
-                                                (
-                                                  image as Record<
-                                                    string,
-                                                    unknown
-                                                  >
-                                                )?.thumbnail ??
-                                                ""
-                                            );
-                                      const title =
-                                        typeof image === "string"
-                                          ? ""
-                                          : String(
-                                              (image as Record<string, unknown>)
-                                                ?.title ||
-                                                (
-                                                  image as Record<
-                                                    string,
-                                                    unknown
-                                                  >
-                                                )?.name ||
-                                                ""
-                                            );
-                                      const date =
-                                        typeof image === "string"
-                                          ? null
-                                          : ((image as Record<string, unknown>)
-                                              ?.date as string | null);
+                            {/* Message bubble */}
+                            <div
+                              className={`flex items-start gap-2 ${
+                                isUserMessage ? "flex-row-reverse" : ""
+                              }`}
+                            >
+                              {/* Avatar for user messages (right side) */}
+                              {isUserMessage && (
+                                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#2c2d30] border border-[#ffffff10] flex items-center justify-center">
+                                  <FiUser className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-400" />
+                                </div>
+                              )}
 
-                                      if (!url) return null;
-
-                                      return (
-                                        <div
-                                          key={i}
-                                          className="flex flex-col gap-2 p-2 rounded border border-gray-600/30"
-                                        >
-                                          <img
-                                            src={url}
-                                            alt={title || "image"}
-                                            className="w-full h-32 object-cover rounded"
-                                            onError={(e) => {
-                                              // hide broken images rather than show broken icon
-                                              e.currentTarget.style.display =
-                                                "none";
-                                            }}
-                                          />
-                                          <div className="text-xs text-gray-300">
-                                            {title && (
-                                              <div
-                                                className="font-medium truncate"
-                                                title={title}
-                                              >
-                                                {title}
-                                              </div>
+                              <div
+                                className={`p-3 sm:p-4 rounded-2xl text-sm ${
+                                  isUserMessage
+                                    ? "bg-gradient-to-br from-[#7B1459] via-[#7D2B62] to-[#72147B] text-white rounded-tr-sm"
+                                    : msg.type === "system"
+                                    ? "bg-[#2c2d30] text-gray-300 rounded-lg text-xs opacity-80"
+                                    : "bg-[#2c2d30] text-gray-100 rounded-tl-sm border border-[#ffffff05]"
+                                }`}
+                              >
+                                {/* Message Content */}
+                                <div className="whitespace-pre-wrap leading-relaxed">
+                                  {/* Main message area */}
+                                  {msg?.message === "Typing..." ? (
+                                    <div className="flex items-center">
+                                      <TypingDots size={8} color="#888" />
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      {displayText ??
+                                        // If there's no textual display value, but msg.message exists as object, render it safely
+                                        (typeof msg?.message === "object" ? (
+                                          <pre className="whitespace-pre-wrap bg-red-800 text-xs text-gray-300">
+                                            {JSON.stringify(
+                                              msg.message,
+                                              null,
+                                              2
                                             )}
-                                            {date && (
-                                              <div className="text-gray-400 mt-1">
-                                                {new Date(
-                                                  String(date)
-                                                ).toDateString()}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    }
+                                          </pre>
+                                        ) : (
+                                          <span className="text-xs text-gray-300">
+                                            —
+                                          </span>
+                                        ))}
+                                    </div>
                                   )}
                                 </div>
-                              </div>
-                            )}
 
-                            {/* Render data items (themes, etc.) if present */}
-                            {/* {msg?.items?.length > 0 && (
+                                {/* Render images if present */}
+                                {(imageItems?.length > 0 ||
+                                  extraImages?.length > 0) && (
+                                  <div className="mt-4 p-3 rounded-lg border border-gray-700/50">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {[...imageItems, ...extraImages].map(
+                                        (image, i) => {
+                                          // If image is a raw string URL (rare), handle it
+                                          const url =
+                                            typeof image === "string"
+                                              ? image
+                                              : String(
+                                                  (
+                                                    image as Record<
+                                                      string,
+                                                      unknown
+                                                    >
+                                                  )?.url ??
+                                                    (
+                                                      image as Record<
+                                                        string,
+                                                        unknown
+                                                      >
+                                                    )?.thumbnail ??
+                                                    ""
+                                                );
+                                          const title =
+                                            typeof image === "string"
+                                              ? ""
+                                              : String(
+                                                  (
+                                                    image as Record<
+                                                      string,
+                                                      unknown
+                                                    >
+                                                  )?.title ||
+                                                    (
+                                                      image as Record<
+                                                        string,
+                                                        unknown
+                                                      >
+                                                    )?.name ||
+                                                    ""
+                                                );
+                                          const date =
+                                            typeof image === "string"
+                                              ? null
+                                              : ((
+                                                  image as Record<
+                                                    string,
+                                                    unknown
+                                                  >
+                                                )?.date as string | null);
+
+                                          if (!url) return null;
+
+                                          return (
+                                            <div
+                                              key={i}
+                                              className="flex flex-col gap-2 p-2 rounded border border-gray-600/30"
+                                            >
+                                              <img
+                                                src={url}
+                                                alt={title || "image"}
+                                                className="w-full h-32 object-cover rounded"
+                                                onError={(e) => {
+                                                  // hide broken images rather than show broken icon
+                                                  e.currentTarget.style.display =
+                                                    "none";
+                                                }}
+                                              />
+                                              <div className="text-xs text-gray-300">
+                                                {title && (
+                                                  <div
+                                                    className="font-medium truncate"
+                                                    title={title}
+                                                  >
+                                                    {title}
+                                                  </div>
+                                                )}
+                                                {date && (
+                                                  <div className="text-gray-400 mt-1">
+                                                    {new Date(
+                                                      String(date)
+                                                    ).toDateString()}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Render data items (themes, etc.) if present */}
+                                {/* {msg?.items?.length > 0 && (
                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
                                
                                 <div className="space-y-3">
@@ -1071,22 +1187,24 @@ const PageContent = () => {
                                 </div>
                               </div>
                             )} */}
-                            {items?.length > 0 &&
-                              !(items?.[0] as Record<string, unknown>)?.url &&
-                              !(items?.[0] as Record<string, unknown>)
-                                ?.thumbnail && (
-                                <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-                                  <div className="space-y-3">
-                                    {items.map((item: unknown, i: number) => {
-                                      // Already rendered as image above if it had url/thumbnail
-                                      // if (item && (item.url || item.thumbnail)) return null;
-                                      return (
-                                        <div
-                                          key={i}
-                                          className="p-3 overflow-x-auto  rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
-                                        >
-                                          <div className="flex items-start justify-between mb-2">
-                                            {/* <div className="flex-1">
+                                {items?.length > 0 &&
+                                  !(items?.[0] as Record<string, unknown>)
+                                    ?.url &&
+                                  !(items?.[0] as Record<string, unknown>)
+                                    ?.thumbnail && (
+                                    <div className="mt-4 p-3 rounded-lg border border-gray-700/50">
+                                      <div className="space-y-3">
+                                        {items.map(
+                                          (item: unknown, i: number) => {
+                                            // Already rendered as image above if it had url/thumbnail
+                                            // if (item && (item.url || item.thumbnail)) return null;
+                                            return (
+                                              <div
+                                                key={i}
+                                                className="p-3 overflow-x-auto rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
+                                              >
+                                                <div className="flex items-start justify-between mb-2">
+                                                  {/* <div className="flex-1">
                       {typeof item==="object"?(
                          <div className="text-sm font-semibold text-white mb-1">
                         {JSON.stringify(item)}
@@ -1103,24 +1221,29 @@ const PageContent = () => {
                         </p>
                       )}
                     </div> */}
-                                          </div>
+                                                </div>
 
-                                          {/* show full JSON for complex items so devs can inspect */}
-                                          <div className="text-xs text-gray-300">
-                                            <pre className="whitespace-pre-wrap">
-                                              {typeof item === "object"
-                                                ? JSON.stringify(item, null, 2)
-                                                : String(item)}
-                                            </pre>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            {/* Steps */}
-                            {/* {msg?.message && JSON.parse(msg?.message)?.stepBystep?.length > 0 && (
+                                                {/* show full JSON for complex items so devs can inspect */}
+                                                <div className="text-xs text-gray-300">
+                                                  <pre className="whitespace-pre-wrap">
+                                                    {typeof item === "object"
+                                                      ? JSON.stringify(
+                                                          item,
+                                                          null,
+                                                          2
+                                                        )
+                                                      : String(item)}
+                                                  </pre>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                {/* Steps */}
+                                {/* {msg?.message && JSON.parse(msg?.message)?.stepBystep?.length > 0 && (
                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
                                  <div className="space-y-3">
                                   {JSON.parse(msg?.message)?.stepBystep?.map((step,i)=>(
@@ -1131,8 +1254,8 @@ const PageContent = () => {
                                  </div>
                               </div>
                             )} */}
-                            {/* Next Actions */}
-                            {/* {msg?.message && JSON.parse(msg?.message)?.nextActions?.length > 0 && (
+                                {/* Next Actions */}
+                                {/* {msg?.message && JSON.parse(msg?.message)?.nextActions?.length > 0 && (
                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
                                  <div className="space-y-3">
                                   {JSON.parse(msg?.message)?.nextActions?.map((nextAction,i)=>(
@@ -1143,62 +1266,71 @@ const PageContent = () => {
                                  </div>
                               </div>
                             )} */}
-                            {/* stepByStep */}
-                            {Array.isArray(stepByStep) &&
-                              stepByStep?.length > 0 && (
-                                <div>
-                                  <div className="text-sm mt-4 font-semibold text-white mb-1">
-                                    Steps :
-                                  </div>
-                                  <div className="p-3  rounded-lg border border-gray-700/50">
-                                    <div className="space-y-2">
-                                      {stepByStep.map(
-                                        (s: string, i: number) => (
-                                          <div
-                                            key={i}
-                                            className="text-xs text-gray-300"
-                                          >
-                                            {typeof s === "string"
-                                              ? s
-                                              : JSON.stringify(s)}
-                                          </div>
-                                        )
-                                      )}
+                                {/* stepByStep */}
+                                {Array.isArray(stepByStep) &&
+                                  stepByStep?.length > 0 && (
+                                    <div>
+                                      <div
+                                        className={`text-sm mt-4 font-semibold mb-1 ${
+                                          isUserMessage
+                                            ? "text-white"
+                                            : "text-white"
+                                        }`}
+                                      >
+                                        Steps :
+                                      </div>
+                                      <div className="p-3 rounded-lg border border-gray-700/50">
+                                        <div className="space-y-2">
+                                          {stepByStep.map(
+                                            (s: string, i: number) => (
+                                              <div
+                                                key={i}
+                                                className="text-xs text-gray-300"
+                                              >
+                                                {typeof s === "string"
+                                                  ? s
+                                                  : JSON.stringify(s)}
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                </div>
-                              )}
+                                  )}
 
-                            {/* nextActions */}
-                            {Array.isArray(nextActions) &&
-                              nextActions?.length > 0 && (
-                                <div>
-                                  <div className="text-sm mt-4 font-semibold text-white mb-1">
-                                    Next Actions :
-                                  </div>
-                                  <div className=" p-3  rounded-lg border border-gray-700/50">
-                                    <div className="space-y-2">
-                                      {nextActions.map(
-                                        (a: string, i: number) => (
-                                          <div
-                                            key={i}
-                                            className="text-xs text-gray-300"
-                                          >
-                                            {typeof a === "string"
-                                              ? a
-                                              : JSON.stringify(a)}
-                                          </div>
-                                        )
-                                      )}
+                                {/* nextActions */}
+                                {Array.isArray(nextActions) &&
+                                  nextActions?.length > 0 && (
+                                    <div>
+                                      <div
+                                        className={`text-sm mt-4 font-semibold mb-1 ${
+                                          isUserMessage
+                                            ? "text-white"
+                                            : "text-white"
+                                        }`}
+                                      >
+                                        Next Actions :
+                                      </div>
+                                      <div className="p-3 rounded-lg border border-gray-700/50">
+                                        <div className="space-y-2">
+                                          {nextActions.map(
+                                            (a: string, i: number) => (
+                                              <div
+                                                key={i}
+                                                className="text-xs text-gray-300"
+                                              >
+                                                {typeof a === "string"
+                                                  ? a
+                                                  : JSON.stringify(a)}
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>{" "}
-                                </div>
-                              )}
-                            {(msg.type === "user" || msg.role === "user") && (
-                              <div className="text-xs opacity-60 mt-3 pt-2 border-t border-gray-600/30">
-                                {msg.timestamp}
+                                  )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -1212,91 +1344,93 @@ const PageContent = () => {
 
           {/* Input Area */}
           <div
-            className={`duration-200 z-10 ${
+            className={`duration-200 absolute bottom-0 z-10 ${
               reload === false
-                ? "text-[#626262] gap-2 flex items-center p-2 mt-4 h-[40px] w-[100%] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737326] text-center text-[16px]"
-                : "text-[#626262] gap-2 flex items-center w-[20%] p-2 mt-4 h-[40px] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737322] text-center text-[16px]"
+                ? "text-[#626262] gap-2 flex items-end p-2 mt-4  w-[100%] rounded-2xl border border-[#ffffff26] bg-[#2f323a] text-center text-[16px]"
+                : "text-[#626262] gap-2 flex items-end w-[20%] p-2 mt-4  rounded-2xl border border-[#ffffff26] bg-[#2f323a] text-center text-[16px]"
             }`}
           >
             <div className="flex items-center gap-2 w-full ">
-              <div
-                onClick={handleMicClick}
-                // className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-white"
-                className={`relative w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
-                  isRecording ? "" : ""
-                }`}
-              >
-                {isRecording && (
-                  <span className="absolute w-[40px] h-[40px] rounded-full bg-gray-400 opacity-50 animate-ping"></span>
-                )}
-                <IoMic
-                  size={20}
-                  //  color={isRecording ? "black" : "white"}
-                  className="relative z-10 text-white"
-                />
-              </div>
-              {/* Image upload */}
-              {/* <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full bg-gray-700 hover:bg-gray-600">
-                <ImageIcon size={18} className="text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label> */}
-              {/* Uploaded thumbnails */}
-              {uploadedImages.length > 0 && (
-                <div className="flex gap-2">
-                  {uploadedImages.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={URL.createObjectURL(img)}
-                      alt="preview"
-                      className="w-8 h-8 rounded object-cover border border-gray-500"
-                    />
-                  ))}
-                </div>
-              )}
-              <input
+              <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === "Enter" && !saving) handleSubmitPrompt();
                 }}
-                placeholder="Enter command"
+                placeholder="Just Type & Watch It Build...."
                 className="text-[#fff] outline-none text-[14px] bg-transparent h-full flex-1"
                 disabled={saving}
               />
             </div>
+            <div
+              onClick={handleMicClick}
+              // className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-white"
+              className={`relative w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
+                isRecording ? "" : ""
+              }`}
+            >
+              {isRecording && (
+                <span className="absolute w-[40px] h-[40px] rounded-full bg-gray-400 opacity-50 animate-ping"></span>
+              )}
+              <IoMic
+                size={20}
+                //  color={isRecording ? "black" : "white"}
+                className="relative z-10 text-white"
+              />
+            </div>
+            {/* Image upload */}
+            <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full ">
+              <ImageIcon size={18} className="text-white" />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </label>
+            {/* Uploaded thumbnails */}
+            {uploadedImages.length > 0 && (
+              <div className="flex gap-2">
+                {uploadedImages.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={URL.createObjectURL(img)}
+                    alt="preview"
+                    className="w-8 h-8 rounded object-cover border border-gray-500"
+                  />
+                ))}
+              </div>
+            )}
             <button
               onClick={handleSubmitPrompt}
               disabled={saving || !prompt.trim()}
-              className={`px-2 text-[12px] h-full rounded-full transition-colors ${
+              className={`h-[30px]  w-[40px] rounded-xl flex items-center justify-center transition-colors ${
                 saving || !prompt.trim()
                   ? "bg-white text-black cursor-not-allowed"
                   : "hover:bg-gray-300"
               }`}
             >
-              {saving ? "..." : "Send"}
+              {saving ? "..." : <BsSend />}
             </button>
           </div>
         </div>
       )}
 
-      {tab === "laptop" && (
+      {/* {tab === "laptop" && (
         <div
           onClick={() => {
             // setTab("tab");
             dispatch(setBasicdata({ tab: "tab" }));
-            sessionStorage.setItem("tab", "tab");
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("tab", "tab");
+            }
           }}
           className="bg-black rounded-full p-2 absolute bottom-10 right-2 flex items-center justify-center"
         >
           <IoChatbubbleEllipsesOutline color="white" size={25} />
         </div>
-      )}
+      )} */}
     </div>
   );
 };
@@ -1308,1036 +1442,3 @@ const Page = () => {
   );
 };
 export default Page;
-
-// "use client";
-// import React, { useEffect, useRef, useState } from "react";
-// import { ImageIcon, MessageCircle, RotateCcw } from "lucide-react";
-// import axios from "axios";
-// import { NEXT_PUBLIC_API } from "../utils/config";
-// import purpleeffect from "../../public/purpleeffect.svg";
-// import { IoChatbubbleEllipsesOutline, IoMic } from "react-icons/io5";
-// import { CiMicrophoneOn } from "react-icons/ci";
-// import Image from "next/image";
-// import { useDispatch, useSelector } from "react-redux";
-// import { RootState } from "../redux/store";
-// import { setBasicdata } from "../redux/slices/basicDetails";
-// import { useAuthContext } from "../utils/auth";
-// import { useSearchParams } from "next/navigation";
-// import TypingDots from "./components/Typingdots";
-
-// interface Message {
-//   type: string;
-//   message;
-//   response: string;
-//   timestamp: string;
-//   images: ImageData[];
-//   items[];
-//   role: string;
-//   nextActions:any[];
-//   stepBystep:any[];
-// }
-// interface ImageData {
-//   url: string;
-//   title?: string;
-//   date?: string | Date;
-// }
-
-// interface ItemData {
-//   // For images
-//   source_url?: string;
-//   title?: string;
-//   date?: string | Date;
-//   // For themes/data
-//   name?: string;
-//   slug?: string;
-//   description?: string;
-//   features?: string[];
-//   rating?;
-//   downloads?: string;
-// }
-// // Safely render message content that could be a string or an object (e.g., WP REST API with { rendered })
-// const renderMessageContent = (message): string => {
-//   if (message == null) return "";
-//   if (typeof message === "string") return message;
-//   if (typeof message === "object") {
-//     const maybeRendered = (message as any)?.rendered;
-//     if (typeof maybeRendered === "string") return maybeRendered;
-//     try {
-//       return JSON.stringify(message, null, 2);
-//     } catch {
-//       return String(message);
-//     }
-//   }
-//   return String(message);
-// };
-// const Page = () => {
-//   // Auto-scroll refs (defined early)
-//   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-//   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
-// const searchParams = useSearchParams();
-//   const siteurlquery = searchParams.get("site_url");
-//   const [siteUrl, setSiteUrl] = useState("");
-//   const email = "sheeratgupta@gmail.com";
-//   const {data:authdata}=useAuthContext()
-//   const [siteid, setSiteid] = useState(sessionStorage.getItem("siteId") || "");
-//   const [siteurl, setSiteurl] = useState(sessionStorage.getItem("siteurl") || "");
-//   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
-//   const [sitedata,setSitedata]=useState({})
-//   const dispatch=useDispatch()
-//   const safeJsonParse = async(input: any) => {
-//   // If it's already an object, return it
-//   if (input === null || input === undefined) return input;
-//   if (typeof input !== "string") return input;
-//   try {
-//     return JSON.parse(input);
-//   } catch (e) {
-//     // Not JSON — return original string
-//     return input;
-//   }
-// }
-//   const normalizeMessage = (msg: any) => {
-//     // Handle different message formats based on role
-//     let parsedMessage = null;
-//     let displayText = "";
-//     let items: any[] = [];
-//     let nextActions: any[] = [];
-//     let stepByStep: any[] = [];
-
-//     // For assistant messages, the structured data is in the message field as JSON
-//     if (msg?.role === "assistant" || msg?.type === "ai") {
-//       try {
-//         // Use synchronous JSON parsing instead of async safeJsonParse
-//         if (typeof msg?.message === "string") {
-//           parsedMessage = JSON.parse(msg.message);
-//         } else if (typeof msg?.message === "object") {
-//           parsedMessage = msg.message;
-//         }
-
-//         if (parsedMessage && typeof parsedMessage === "object") {
-//           displayText = parsedMessage.response || "";
-//           items = Array.isArray(parsedMessage.items) ? parsedMessage.items : [];
-//           nextActions = Array.isArray(parsedMessage.nextActions) ? parsedMessage.nextActions : [];
-//           stepByStep = Array.isArray(parsedMessage.stepByStep) ? parsedMessage.stepByStep : [];
-//         } else {
-//           // Fallback if parsing fails
-//           displayText = typeof msg?.message === "string" ? msg.message : "";
-//         }
-//       } catch (e) {
-//         displayText = typeof msg?.message === "string" ? msg.message : "";
-//       }
-//     } else {
-//       // For user messages, use the message directly
-//       displayText = typeof msg?.message === "string" ? msg.message : "";
-
-//       // Also check for existing items/nextActions/stepByStep in the message object
-//       items = Array.isArray(msg?.items) ? msg.items : [];
-//       nextActions = Array.isArray(msg?.nextActions) ? msg.nextActions : [];
-//       stepByStep = Array.isArray(msg?.stepBystep) ? msg.stepBystep : [];
-//     }
-
-//     // Images: from msg.images array
-//     const imagesArray = Array.isArray(msg?.images) ? msg.images : [];
-
-//     return {
-//       displayText,
-//       parsedMessage,
-//       items,
-//       imagesArray,
-//       nextActions,
-//       stepByStep,
-//     };
-//   };
-// // Site details
-// const getsitedetails=async()=>{
-//   if(!siteid){
-//     return
-//   }
-// try{
-//   const res=await axios.get(`${NEXT_PUBLIC_API}/getsite/${siteid}`)
-
-//   setSitedata(res?.data?.data)
-// }
-// catch(e){
-//   console.log(e)
-// }
-// }
-//   // console.log(email, "email");
-//    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const files = Array.from(e.target.files || []);
-//     setUploadedImages((prev) => [...prev, ...files]);
-//   };
-//   const handleConnect = async () => {
-//     if (!siteUrl) return alert("Please enter a site URL");
-
-//     try {
-//       // Ensure protocol exists
-//       let formattedUrl = siteUrl.trim();
-//       if (!/^https?:\/\//i.test(formattedUrl)) {
-//         formattedUrl = "http://" + formattedUrl; // default to http
-//       }
-
-//       //  Parse with URL API to always get clean origin
-//       const urlObj = new URL(formattedUrl);
-//       const cleanUrl = urlObj.origin; // e.g. http://testing3.local
-
-//       // Build plugins page URL
-//       const pluginsUrl = `${cleanUrl}/wp-admin/plugins.php`;
-
-//       // Save only clean site_url in DB
-//       const res = await axios.post("http://localhost:7002/api/site", {
-//         email: authdata?.user?.email,
-//         userId: authdata?.user?.id,
-//         site_url: cleanUrl,
-//       });
-
-//       // console.log(res?.data?.success);
-//       if (!res?.data?.success) return alert("Something went wrong");
-
-//       // Open plugins page in new tab
-//       window.open(pluginsUrl, "_blank");
-//     } catch (err) {
-//       console.error(err);
-//       alert("Invalid site URL");
-//     }
-//   };
-
-//   const [iframeKey, setIframeKey] = useState(0);
-//   const [prompt, setPrompt] = useState("");
-//   const [saving, setSaving] = useState(false);
-//   const [showPreview, setShowPreview] = useState(false);
-
-//   const [reload, setReload] = useState(false);
-//   const [data, setData] = useState({});
-//   // Conversation & thread management
-
-//   const [conversation, setConversation] = useState<Message[]>([
-//     {
-//       type: "ai",
-//       message:
-//         "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
-//       response: "👋 Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
-//       role: "assistant",
-//       timestamp: new Date().toLocaleTimeString(),
-//       images: [],
-//       items: [],
-//       nextActions: [],
-//       stepBystep: []
-//     },
-//   ]);
-//    // Auto-scroll effect (after conversation is initialized)
-//   useEffect(() => {
-//     try {
-//       if (chatScrollContainerRef.current) {
-//         const el = chatScrollContainerRef.current;
-//         el.scrollTop = el.scrollHeight;
-//       } else {
-//         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-//       }
-//     } catch {}
-//   }, [conversation]);
-
-//   const handleSubmitPrompt = async () => {
-//    if (!prompt.trim() && uploadedImages.length === 0) return;
-
-//     setSaving(true);
-
-//     const timestamp = new Date().toLocaleTimeString();
-//     const newUserMessage = {
-//       type: "user",
-//       message: prompt,
-//       response: prompt,
-//       role: "user",
-//       timestamp,
-//       images: [],
-//       items: [],
-//       nextActions: [],
-//       stepBystep: []
-//     };
-//     const processingMessage = {
-//       type: "ai",
-//       message: "Typing...",
-//       response: "Typing...",
-//       role: "assistant",
-//       timestamp,
-//       images: [],
-//       items: [],
-//       nextActions: [],
-//       stepBystep: []
-//     };
-
-//     setConversation((prev) => [...prev, newUserMessage, processingMessage]);
-
-//     const previewKeywords = [
-//       "css",
-//       "style",
-//       "design",
-//       "color",
-//       "background",
-//       "font",
-//       "layout",
-//       "preview",
-//       "show",
-//       "display",
-//       "appearance",
-//     ];
-//     const shouldShowPreview = previewKeywords.some((keyword) =>
-//       prompt.toLowerCase().includes(keyword)
-//     );
-//     const formData = new FormData();
-//     formData.append("prompt", prompt);
-//     formData.append("threadId", "thread-xyz");
-//     formData.append("siteUrl", sitedata?.site_url);
-//     formData.append("username", sitedata?.admin_username);
-//     formData.append("accessToken", sitedata?.access_token);
-//     formData.append("projectId", sitedata?._id);
-
-//     uploadedImages.forEach((file) => {
-//       formData.append("images", file);
-//     });
-//     try {
-//       const conversationHistory = conversation
-//         .filter((msg) => msg.type === "user" || msg.type === "ai")
-//         .map((msg) => ({
-//           role: msg.type === "user" ? "user" : "assistant",
-//           content: msg.message,
-//         }));
-
-//       conversationHistory.push({ role: "user", content: prompt });
-//  formData.append("conversation", JSON.stringify(conversationHistory));
-//  const response = await axios.post(
-//         `${NEXT_PUBLIC_API}/test`,
-//         formData,
-//         { headers: { "Content-Type": "multipart/form-data" } }
-//       );
-
-//         const data = response.data?.data;
-//         console.log(response.data?.data,typeof response.data?.data,"response.data?.data")
-//       setLink(data?.details?.link)
-//       setData(data);
-//       setConversation((prev) => {
-//         const withoutProcessing = prev.slice(0, -1); // Remove "Typing..."
-// console.log(data,typeof data,"data")
-//         if (data.success) {
-//           // Use data.response as primary response, fallback to data.details
-//           const aiResponse =
-//             data?.response ??
-//             (typeof data?.response === "string" ? data.response : JSON.stringify(data.response));
-
-//           // const aiResponse =
-//           //   typeof aiResponseRaw === "string"
-//           //     ? aiResponseRaw
-//           //     : (aiResponseRaw && typeof aiResponseRaw === "object" && typeof (aiResponseRaw as any).rendered === "string")
-//           //     ? (aiResponseRaw as any).rendered
-//           //     : (() => {
-//           //         try {
-//           //           return JSON.stringify(aiResponseRaw);
-//           //         } catch {
-//           //           return String(aiResponseRaw);
-//           //         }
-//           //       })();
-
-//           // Check if details?.items exists and is an array
-//           const itemsArray = Array.isArray(data?.items) && data.items.length > 0
-//             ? data.items
-//             : [];
-// const nextActions = Array.isArray(data?.nextActions) && data?.nextActions.length > 0
-//             ? data?.nextActions
-//             : [];
-//         const stepByStep = Array.isArray(data?.stepByStep) && data?.stepByStep.length > 0
-//             ? data?.stepByStep
-//             : [];
-//           // Separate images and other items
-//           const imageItems = itemsArray.filter((item: any) => item.url);
-//           const dataItems = itemsArray.filter((item: any) => !item.url);
-
-//           // Attach items to this AI message
-//           const newAiMessage = {
-//             type: "ai",
-
-//             message: aiResponse,
-//             role: "assistant",
-//             images: imageItems,
-//             items: dataItems,
-//             nextActions: nextActions,
-//             stepBystep: stepByStep,
-//             timestamp: new Date().toLocaleTimeString(),
-//           };
-
-//           const updated = [...withoutProcessing, newAiMessage];
-
-//           // Optional debug/system messages
-//           // if (data.agentUsed && data.classificationReasoning) {
-//           //   updated.push({
-//           //     type: "system",
-//           //     response: ` Routed to: ${data.agentUsed} | Reason: ${data.classificationReasoning}`,
-//           //     timestamp: new Date().toLocaleTimeString(),
-//           //     images: [],
-//           //     items: [],
-//           //      nextActions:[],
-//           //     stepByStep:[]
-//           //   });
-//           // }
-
-//           // if (data.suggestions?.length > 0) {
-//           //   updated.push({
-//           //     type: "ai",
-//           //     message:
-//           //       " Suggestions:\n" +
-//           //       data.suggestions.map((s: string) => `• ${s}`).join("\n"),
-//           //     timestamp: new Date().toLocaleTimeString(),
-//           //     images: [],
-//           //     items: [],
-//           //   });
-//           // }
-
-//           // if (data.refreshNeeded || shouldShowPreview) {
-//           //   setShowPreview(true);
-//           //   setIframeKey((prev) => prev + 1);
-//           //   updated.push({
-//           //     type: "ai",
-//           //     message: "👁️ Preview updated! Check the preview panel.",
-//           //     timestamp: new Date().toLocaleTimeString(),
-//           //     images: [],
-//           //     items: [],
-//           //      nextActions:[],
-//           //     stepByStep:[]
-//           //   });
-//           // }
-
-//           // if (
-//           //   data.action?.includes("create") ||
-//           //   data.action?.includes("delete")
-//           // ) {
-//           //   fetchWordPressStats();
-//           // }
-
-//           return updated;
-//         } else {
-//           return [
-//             ...withoutProcessing,
-//             {
-//               type: "ai",
-//               message: `${data?.response || "Server is facing issues.Please try again later."}`,
-//               timestamp: new Date().toLocaleTimeString(),
-//               images: [],
-//               items: [],
-//               nextActions:[],
-//               stepByStep:[]
-//             },
-//           ];
-//         }
-//       });
-//     } catch (err) {
-//       console.error("AI error:", err);
-//       setConversation((prev) => {
-//         const withoutProcessing = prev.slice(0, -1);
-//         return [
-//           ...withoutProcessing,
-//           {
-//             type: "ai",
-//             response: `Error: ${
-//               err ||
-//               "Failed to process your request. Check if the backend server is running."
-//             }`,
-//             timestamp: new Date().toLocaleTimeString(),
-//             images: [],
-//             items: [],
-//             nextActions:[],
-//             stepByStep:[]
-//           },
-//         ];
-//       });
-//     }
-
-//     setPrompt("");
-//     setSaving(false);
-//   };
-
-//   const resetConversation = () => {
-//     setConversation([
-//       {
-//         type: "ai",
-//         message:
-//           " Welcome to WordPress AI Assistant!\n\nI can help you manage your WordPress site with natural language commands. Here's what I can do:\n\n• Create and manage pages & posts\n• Handle user management\n• Modify site settings\n• Manage comments and media\n• Style and design changes\n\nJust tell me what you'd like to do!",
-//         timestamp: new Date().toLocaleTimeString(),
-//         images: [],
-//         items: [],
-//       },
-//     ]);
-//   };
-//   const [link,setLink]=useState("")
-
-//   // const siteid = sessionStorage.getItem("siteId");
-//   // const siteurl = sessionStorage.getItem("siteurl");
-
-//   // const [tab, setTab] = useState("tab");
-//     const tab = useSelector((state: RootState) => state.basicDetails.data.tab);
-//   useEffect(() => {
-//     getMessages()
-//     // setTab(sessionStorage.getItem("tab") || "tab");
-//     // if (typeof window !== "undefined") {
-//       setSiteid(sessionStorage.getItem("siteId") || "");
-//       setSiteurl(sessionStorage.getItem("siteurl") || "");
-//       getsitedetails()
-//     // }
-//   }, []);
-
-//   const getMessages=async()=>{
-
-//     if(!siteid){
-//       return;
-//     }
-//       try{
-//         const res=await axios.get(`${NEXT_PUBLIC_API}/getmessages/${siteid}`);
-//         // setConversation(res.data.messages)
-//       console.log(res?.data?.messages,"messages")
-//         if(res?.data?.messages?.length>0  )
-//         // { setConversation((prev) => [...prev, res.data.messages]);}
-//       {setConversation((prev) => [...prev, ...res.data.messages])}
-
-//       }
-//       catch(e){
-//         console.log(e
-//         )
-//       }
-//   }
-
-//   const recognitionRef = useRef(null);
-//   // const [isLoaded, setIsLoaded] = useState(false);
-//    const [isRecording, setIsRecording] = useState(false);
-//   useEffect(() => {
-//     // setIsLoaded(true);
-
-//     // Initialize SpeechRecognition
-//     const SpeechRecognition =
-//       (window as any).SpeechRecognition ||
-//       (window as any).webkitSpeechRecognition;
-//     if (SpeechRecognition) {
-//       const recognition = new SpeechRecognition();
-//       recognition.lang = "en-US";
-//       recognition.interimResults = true;
-//       recognition.maxAlternatives = 1;
-
-//       recognition.onresult = (event) => {
-//         const transcript = event.results[0][0].transcript;
-//         setPrompt(transcript);
-
-//       };
-//  recognition.onend = () => {
-//         setIsRecording(false);
-//       };
-//       recognitionRef.current = recognition;
-
-//     } else {
-//       console.warn("SpeechRecognition API not supported in this browser");
-//     }
-//   }, []);
-//     const handleMicClick = () => {
-//        setIsRecording((prev) => !prev);
-//     if (!recognitionRef.current) return;
-//     recognitionRef.current.start();
-//   };
-//  console.log(conversation,"con")
-//   return (
-//     <div
-//       className={`duration-200  flex w-full items-center justify-center h-full ${
-//         reload === false ? "border-transparent gap-2" : "border-transparent"
-//       }`}
-//     >
-//       <div
-//         className={`${
-//           tab === "tab" && siteurl
-//             ? " w-[70%]"
-//             : tab === "laptop" || !siteurl
-//             ? "w-[100%]"
-//             : "w-[30%]"
-//         }
-//         h-full border flex items-center justify-center overflow-hidden`}
-//       >
-//         {siteurl ? (
-//           <iframe
-//             src={link?link:siteurl}
-//             className="w-full h-full "
-//             style={{ border: "none" }}
-//           />
-//         ) : (
-//           <div className="w-full h-full  flex items-center justify-center flex-col">
-//             <Image
-//               src={purpleeffect}
-//               alt="pic"
-//               width={300}
-//               height={300}
-//               className="absolute top-50 left-50 z-0"
-//             />
-//             <div
-//               className={`duration-100
-//                  text-[#fff] text-[40px]  text-center font-bold
-//               `}
-//             >
-//               Start <span className="text-[#7A7A7A]">out</span> with
-//               <span className="text-[#7A7A7A]">out</span> a{" "}
-//               <span className="text-[#7A7A7A]">doubt</span>
-//             </div>
-//             <div className="flex flex-col gap-2 mt-3  items-start">
-//               <div
-//                 className={`duration-100
-//                   text-[#CACACA] mb-4 font-bold text-center text-[16px]
-//               }`}
-//               >
-//                 Upload to WordPress
-//               </div>
-//               <div
-//                 className="duration-100
-//                   text-[#CACACA]  text-[16px]
-//               "
-//               >
-//                 • Log in to your WordPress Admin.
-//               </div>
-//               <div
-//                 className="duration-100
-//                   text-[#CACACA]  text-[16px]
-//               "
-//               >
-//                 • Go to Plugins → Add New → Upload Plugin
-//               </div>
-//               <div
-//                 className="duration-100
-//                   text-[#CACACA]  text-[16px]
-//               "
-//               >
-//                 • Choose the .zip file and click Install Now.
-//               </div>
-//             </div>
-//             <input
-//               value={siteUrl}
-//               type="text"
-//               onChange={(e) => setSiteUrl(e.target.value)}
-//               required
-//               placeholder="Site url"
-//               className="border-2 z-20 border-[#fff] bg-black outline-none w-[30%]  text-white my-4 p-2 text-[14px] rounded-full"
-//             />
-
-//             <button
-//               onClick={handleConnect}
-//               className="px-8 z-20 py-2 text-black text-[14px] bg-white rounded-full"
-//             >
-//               Connect Webivus to Your Site
-//             </button>
-//              <button
-//               onClick={() => {
-//                 window.location.href = "/api/download-plugin";
-//               }}
-//               className="px-8 z-20 py-2  mt-2 text-white text-[14px] bg-[#561735] rounded-full"
-//             >
-//               Download Webivus Plugin
-//             </button>
-//           </div>
-//         )}
-//       </div>
-//       {/* Chatting Area */}
-//       {siteurl && (
-//         <div
-//           className={`duration-200 ${
-//             tab === "laptop" ? "hidden" : tab === "tab" ? "w-[30%]" : "w-[70%]"
-//           } relative flex flex-col w-[30%] border p-2 overflow-hidden justify-center h-full
-
-//         `}
-//         >
-//           {/* Conversation Area */}
-//           <div
-//             className={`${
-//               reload === false
-//                 ? "h-[calc(100vh-150px)] w-[100%]  items-start justify-start flex "
-//                 : "hidden"
-//             }`}
-//           >
-//             {reload === false && (
-//               <div className="h-[100%] bg-[#0c0c0c] w-[100%] mt-2 flex flex-col">
-//                 <div className="flex items-center justify-between p-3 border-b border-gray-800">
-//                   <div className="flex items-center space-x-2">
-//                     <MessageCircle size={16} className="text-blue-400" />
-//                     {/* <span className="text-sm font-semibold text-gray-300">
-//                       Conversation (Thread: {threadId.slice(-6)})
-//                     </span> */}
-//                   </div>
-//                   <button
-//                     onClick={resetConversation}
-//                     className="text-gray-400 hover:text-white transition-colors"
-//                     title="Clear conversation"
-//                   >
-//                     <RotateCcw size={14} />
-//                   </button>
-//                 </div>
-
-//                 <div ref={chatScrollContainerRef} className="h-[100%] p-4 overflow-y-scroll">
-//                   <div className="space-y-4 ">
-//                     {conversation.map((msg: Message, idx) => {
-//                       const {
-//     displayText,
-//     items,
-//     imagesArray,
-//     nextActions,
-//     stepByStep,
-//   } = normalizeMessage(msg);
-//     const imageItems = items?.filter((d: any) => d && (d.url || d.thumbnail));
-//   // fallback if items don't contain images but msg.images exists
-//   const extraImages = Array.isArray(imagesArray) ? imagesArray : [];
-//                       return (
-//                         <div
-//                           key={idx}
-//                           className={`flex ${
-//                             msg.type === "user" || msg.role === "user"
-//                               ? "justify-end"
-//                               : msg.type === "system" || msg.type === "ai" || msg.role === "assistant" || msg.role === "ai" || msg.role === "system"
-//                               ? "justify-start"
-//                               : "justify-start"
-//                           }`}
-//                         >
-//                           <div
-//                             className={`max-w-[85%] p-4 rounded-lg text-sm ${
-//                               msg.type==="user" || msg.role === "user"
-//                                 ? "bg-purple-800/60 text-white rounded-br-sm"
-//                                 : msg.type === "system"
-//                                 ? " text-gray-300 rounded text-xs opacity-80"
-//                                 : "bg-gradient-to-br from-white/5 to-white/10 text-gray-100 rounded-bl-sm "
-//                             }`}
-//                           >
-//                             {/* AI Response Content */}
-//                             <div className="whitespace-pre-wrap leading-relaxed mb-3">
-
-//       {/* Main message area */}
-//       {msg?.message === "Typing..." ? (
-//         <div className="flex items-center">
-//           <TypingDots size={8} color="#888" />
-//         </div>
-//       ) : (
-//         <div>
-//           {displayText ?? (
-//             // If there's no textual display value, but msg.message exists as object, render it safely
-//             typeof msg?.message === "object" ? (
-//               <pre className="whitespace-pre-wrap text-xs text-gray-300">
-//                 {JSON.stringify(msg.message, null, 2)}
-//               </pre>
-//             ) : (
-//               <span className="text-xs text-gray-300">—</span>
-//             )
-//           )}
-//         </div>
-//       )}
-//   {/* {msg.message === "Typing..." ? (
-//     <div className="flex items-center">
-//       <TypingDots size={8} color="#888" />
-//     </div>
-//   ) : (
-//     <div>
-//       {typeof msg.response === "string"
-//         ? msg.response
-//         : (() => {
-//               try {
-//                 return JSON.parse(msg?.message)?.response || msg.message;
-//               } catch (e) {
-//                 return msg.message;
-//               }
-//             })()
-//       }
-//     </div>
-//   )} */}
-//                             </div>
-
-//                             {/* Render images if present */}
-//                             {(imageItems?.length > 0 || extraImages?.length > 0) && (
-//         <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-//           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-//             {[...imageItems, ...extraImages].map((image: any, i) => {
-//               // If image is a raw string URL (rare), handle it
-//               const url = typeof image === "string" ? image : image.url ?? image.thumbnail;
-//               const title =
-//                 typeof image === "string"
-//                   ? ""
-//                   : image.title || image.name || "";
-//               const date = typeof image === "string" ? null : image.date;
-
-//               if (!url) return null;
-
-//               return (
-//                 <div
-//                   key={i}
-//                   className="flex flex-col gap-2 p-2 rounded border border-gray-600/30"
-//                 >
-//                   <img
-//                     src={url}
-//                     alt={title || "image"}
-//                     className="w-full h-32 object-cover rounded"
-//                     onError={(e) => {
-//                       // hide broken images rather than show broken icon
-//                       (e.currentTarget as HTMLImageElement).style.display = "none";
-//                     }}
-//                   />
-//                   <div className="text-xs text-gray-300">
-//                     {title && (
-//                       <div
-//                         className="font-medium truncate"
-//                         title={title}
-//                       >
-//                         {title}
-//                       </div>
-//                     )}
-//                     {date && (
-//                       <div className="text-gray-400 mt-1">
-//                         {new Date(date).toDateString()}
-//                       </div>
-//                     )}
-//                   </div>
-//                 </div>
-//               );
-//             })}
-//           </div>
-//         </div>
-//       )}
-
-//                             {/* Render data items (themes, etc.) if present */}
-//                             {/* {msg?.items?.length > 0 && (
-//                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
-
-//                                 <div className="space-y-3">
-//                                   {msg?.items?.map(
-//                                     (item: ItemData, i: number) => (
-//                                       <div
-//                                         key={i}
-//                                         className="p-3  rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
-//                                       >
-
-//                                         <div className="flex items-start justify-between mb-2">
-//                                           <div className="flex-1">
-//                                             <h4 className="text-sm font-semibold text-white mb-1">
-//                                               {renderMessageContent(
-//                                                 (item.name as any) ?? (item.title as any) ?? "Item"
-//                                               )}
-//                                             </h4>
-//                                             {JSON.stringify(item)}
-//                                             {item.slug && (
-//                                               <p className="text-xs text-gray-400 font-mono">
-//                                                 {renderMessageContent(item.slug as any)}
-//                                               </p>
-//                                             )}
-//                                           </div>
-//                                           {item.rating && (
-//                                             <div className="flex items-center gap-1 text-xs text-yellow-400">
-//                                               <span>⭐</span>
-//                                               <span>{item.rating}</span>
-//                                             </div>
-//                                           )}
-//                                         </div>
-
-//                                         {item.description && (
-//                                           <p className="text-xs text-gray-300 mb-2 leading-relaxed">
-//                                             {renderMessageContent(item.description as any)}
-//                                           </p>
-//                                         )}
-
-//                                       </div>
-//                                     )
-//                                   )}
-//                                 </div>
-//                               </div>
-//                             )} */}
-//                             {items?.length > 0 && !items?.[0]?.url && !items?.[0]?.thumbnail && (
-//         <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-//           <div className="space-y-3">
-//             {items.map((item: any, i: number) => {
-//               // Already rendered as image above if it had url/thumbnail
-//               // if (item && (item.url || item.thumbnail)) return null;
-//               return (
-//                 <div
-//                   key={i}
-//                   className="p-3 overflow-x-auto  rounded-lg border border-gray-600/30 hover:bg-gray-700/50 transition-colors"
-//                 >
-//                   <div className="flex items-start justify-between mb-2">
-//                     {/* <div className="flex-1">
-//                       {typeof item==="object"?(
-//                          <div className="text-sm font-semibold text-white mb-1">
-//                         {JSON.stringify(item)}
-
-//                       </div>
-//                       ):(<div className="text-sm font-semibold text-white mb-1">
-//                         {item}
-
-//                       </div>)}
-
-//                       {item?.slug && (
-//                         <p className="text-xs text-gray-400 font-mono">
-//                           {item.slug}
-//                         </p>
-//                       )}
-//                     </div> */}
-//                   </div>
-
-//                   {/* show full JSON for complex items so devs can inspect */}
-//                   <div className="text-xs text-gray-300">
-//                     <pre className="whitespace-pre-wrap">
-//                       {typeof item === "object" ? JSON.stringify(item, null, 2) : String(item)}
-//                     </pre>
-//                   </div>
-//                 </div>
-//               );
-//             })}
-//           </div>
-//         </div>
-//       )}
-//                             {/* Steps */}
-//                             {/* {msg?.message && JSON.parse(msg?.message)?.stepBystep?.length > 0 && (
-//                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
-//                                  <div className="space-y-3">
-//                                   {JSON.parse(msg?.message)?.stepBystep?.map((step,i)=>(
-//                                      <div key={i} className="text-xs text-gray-300">
-//                                        {step}
-//                                      </div>
-//                                   ))}
-//                                  </div>
-//                               </div>
-//                             )} */}
-//                             {/* Next Actions */}
-//                             {/* {msg?.message && JSON.parse(msg?.message)?.nextActions?.length > 0 && (
-//                               <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
-//                                  <div className="space-y-3">
-//                                   {JSON.parse(msg?.message)?.nextActions?.map((nextAction,i)=>(
-//                                      <div key={i} className="text-xs text-gray-300">
-//                                        {nextAction}
-//                                      </div>
-//                                   ))}
-//                                  </div>
-//                               </div>
-//                             )} */}
-//                             {/* stepByStep */}
-//       {Array.isArray(stepByStep) && stepByStep?.length > 0 && (
-//         <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-//           <div className="space-y-2">
-//             {stepByStep.map((s: any, i: number) => (
-//               <div key={i} className="text-xs text-gray-300">
-//                 {typeof s === "string" ? s : JSON.stringify(s)}
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       )}
-
-//       {/* nextActions */}
-//       {Array.isArray(nextActions) && nextActions?.length > 0 && (
-//         <div className="mt-4 p-3  rounded-lg border border-gray-700/50">
-//           <div className="space-y-2">
-//             {nextActions.map((a: any, i: number) => (
-//               <div key={i} className="text-xs text-gray-300">
-//                 {typeof a === "string" ? a : JSON.stringify(a)}
-//               </div>
-//             ))}
-//           </div>
-//         </div>
-//       )}
-// {(msg.type === "user" || msg.role === "user") && (
-//                               <div className="text-xs opacity-60 mt-3 pt-2 border-t border-gray-600/30">
-//                                 {msg.timestamp}
-//                               </div>
-//                             )}
-
-//                           </div>
-//                         </div>
-//                       );
-//                     })}
-//                     <div ref={messagesEndRef} />
-//                   </div>
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Input Area */}
-//           <div
-//             className={`duration-200 z-10 ${
-//               reload === false
-//                 ? "text-[#626262] gap-2 flex items-center p-2 mt-4 h-[40px] w-[100%] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737326] text-center text-[16px]"
-//                 : "text-[#626262] gap-2 flex items-center w-[20%] p-2 mt-4 h-[40px] rounded-full border border-[#373737] bg-gradient-to-bl from-[#d9d9d900] via-[#7373730d] to-[#73737322] text-center text-[16px]"
-//             }`}
-//           >
-//             <div className="flex items-center gap-2 w-full ">
-//               <div onClick={handleMicClick}
-//               // className="w-[30px] h-[30px] rounded-full flex items-center justify-center bg-white"
-//               className={`relative w-[30px] h-[30px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 ${
-//         isRecording ? "" : ""
-//       }`}
-
-//               >
-//                 {isRecording && (
-//         <span className="absolute w-[40px] h-[40px] rounded-full bg-gray-400 opacity-50 animate-ping"></span>
-//       )}
-//                 <IoMic size={20}
-//                 //  color={isRecording ? "black" : "white"}
-//         className="relative z-10 text-white"
-//                  />
-//               </div>
-//               {/* Image upload */}
-//       {/* <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full bg-gray-700 hover:bg-gray-600">
-//         <ImageIcon size={18} className="text-white" />
-//         <input
-//           type="file"
-//           accept="image/*"
-//           multiple
-//           onChange={handleImageUpload}
-//           className="hidden"
-//         />
-//       </label> */}
-//       {/* Uploaded thumbnails */}
-//       {uploadedImages.length > 0 && (
-//         <div className="flex gap-2">
-//           {uploadedImages.map((img, idx) => (
-//             <img
-//               key={idx}
-//               src={URL.createObjectURL(img)}
-//               alt="preview"
-//               className="w-8 h-8 rounded object-cover border border-gray-500"
-//             />
-//           ))}
-//         </div>
-//       )}
-//               <input
-//                 value={prompt}
-//                 onChange={(e) => setPrompt(e.target.value)}
-//                 onKeyPress={(e) => {
-//                   if (e.key === "Enter" && !saving) handleSubmitPrompt();
-//                 }}
-//                 placeholder="Enter command"
-//                 className="text-[#fff] outline-none text-[14px] bg-transparent h-full flex-1"
-//                 disabled={saving}
-//               />
-//             </div>
-//             <button
-//               onClick={handleSubmitPrompt}
-//               disabled={saving || !prompt.trim()}
-//               className={` h-full text-[12px] font-semibold px-2 rounded-full transition-colors ${
-//                 saving || !prompt.trim()
-//                   ? "bg-white text-black cursor-not-allowed"
-//                   : "hover:bg-white/80"
-//               }`}
-//             >
-//               {saving ? "..." : "Send"}
-//             </button>
-//           </div>
-//         </div>
-//       )}
-
-//       {tab === "laptop" && (
-//         <div
-//           onClick={() => {
-//             // setTab("tab");
-//              dispatch(setBasicdata({ tab: "tab" }));
-//             sessionStorage.setItem("tab", "tab");
-//           }}
-//           className="bg-black rounded-full p-2 absolute bottom-10 right-2 flex items-center justify-center"
-//         >
-//           <IoChatbubbleEllipsesOutline color="white" size={25} />
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default Page;
