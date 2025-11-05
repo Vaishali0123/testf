@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { FaCheck, FaRegCheckCircle, FaTimes } from "react-icons/fa";
-import Pricing from "../../../public/bgpricing.svg";
 
 const PricingPage = () => {
   const [billingPeriod, setBillingPeriod] = useState("monthly");
@@ -43,6 +42,7 @@ const PricingPage = () => {
 
     return () => observer.disconnect();
   }, []);
+
   const siteOptions = [
     { value: 2, label: "2 Sites" },
     { value: 4, label: "4 Sites" },
@@ -50,54 +50,11 @@ const PricingPage = () => {
   ];
 
   const getPrice = (basePrice: number, period: string, sites: number) => {
-    const multiplier = period === "yearly" ? 10 : 1; // 2 months free on yearly
+    const multiplier = period === "yearly" ? 10 : 1;
     const siteMultiplier = sites === 2 ? 1 : sites === 4 ? 1.8 : 3.2;
     return Math.round(basePrice * multiplier * siteMultiplier);
   };
 
-  // const plans = [
-  //   {
-  //     name: "Free",
-  //     basePrice: 0,
-  //     period: "",
-  //     popular: false,
-  //     features: [
-  //       "Unlimited devices",
-  //       "Mobile app",
-  //       "Basic support",
-  //       "5GB storage",
-  //       "Reporting and analytics",
-  //     ],
-  //   },
-  //   {
-  //     name: "Enterprise",
-  //     basePrice: 20,
-  //     period: billingPeriod === "monthly" ? "per month" : "per year",
-  //     popular: true,
-  //     features: [
-  //       "Analytics Premium Account",
-  //       "Mobile app",
-  //       "Advanced support",
-  //       "Secure cloud",
-  //       "Unlimited storage",
-  //       "Advanced analytics",
-  //     ],
-  //   },
-  //   {
-  //     name: "Business",
-  //     basePrice: 120,
-  //     period: billingPeriod === "monthly" ? "per month" : "per year",
-  //     popular: false,
-  //     features: [
-  //       "Established response delivery",
-  //       "All new features month",
-  //       "Data security and privacy",
-  //       "Customized training",
-  //       "Unlimited storage",
-  //       "Project custom reports & dashboards",
-  //     ],
-  //   },
-  // ];
   const plans = [
     {
       title: "Hobby",
@@ -145,6 +102,7 @@ const PricingPage = () => {
       highlight: false,
     },
   ];
+
   const comparisonPlans = [
     {
       name: "Free",
@@ -379,42 +337,40 @@ const PricingPage = () => {
   const renderFeatureValue = (value: string | boolean) => {
     if (typeof value === "boolean") {
       return value ? (
-        <FaCheck className="w-5 h-5 text-green-500 mx-auto" />
+        <FaCheck className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mx-auto" />
       ) : (
-        <FaTimes className="w-5 h-5 text-gray-500 mx-auto" />
+        <FaTimes className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mx-auto" />
       );
     }
-    return <span className="text-sm text-gray-300">{value}</span>;
+    return <span className="text-xs sm:text-sm text-gray-300">{value}</span>;
   };
 
   return (
     <div className="min-h-screen text-white">
-      {/* Header */}
-      <div className="container mx-auto px-6 py-8">
+      <div className="sm:container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Hero Section */}
-        <div
-          style={{ backgroundImage: `url(${Pricing.src})` }}
-          className="text-center bg-contain mb-16"
-        >
+        <div className="text-center mb-12 sm:mb-16">
           <div className="relative w-full flex justify-center items-center">
-            <div className="absolute top-0 blur-2xl animate-pulse w-[10%] h-full bg-[#6f00573a]"></div>
+            <div className="absolute top-0 blur-2xl animate-pulse w-[30%] sm:w-[10%] h-full bg-[#6f00573a]"></div>
             <div>
-              <h1 className="text-5xl leading-tight font-bold mb-12">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold mb-8 sm:mb-12 px-4">
                 <span className="text-[#4e4e4e]">Discover</span> Products
                 <br />
                 With the Best Pricing
               </h1>
-              <p className="text-[16px] text-[#f1f1f17f] mb-8 max-w-2xl mx-auto">
+              <p className="text-sm sm:text-base text-[#f1f1f17f] mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
                 Start for free and get attractive offers from our partners while
                 being a part of something great community full of amazing people
               </p>
             </div>
           </div>
-          <div className="flex justify-center">
-            <div className="flex justify-center p-1 rounded-3xl border border-white/5 bg-[#181818ae] w-fit space-x-4 mb-8">
+
+          {/* Billing Period Toggle */}
+          <div className="flex justify-center mb-6 sm:mb-8 px-4">
+            <div className="flex justify-center p-1 rounded-3xl border border-white/5 bg-[#181818ae] w-full sm:w-fit space-x-2 sm:space-x-4">
               <button
                 onClick={() => setBillingPeriod("monthly")}
-                className={`px-8 py-3 rounded-[20px] font-medium transition-all ${
+                className={`flex-1 sm:flex-initial px-4 sm:px-8 py-2 sm:py-3 rounded-[20px] font-medium transition-all text-sm sm:text-base ${
                   billingPeriod === "monthly"
                     ? "bg-white text-black"
                     : "text-gray-300 hover:text-white"
@@ -424,7 +380,7 @@ const PricingPage = () => {
               </button>
               <button
                 onClick={() => setBillingPeriod("yearly")}
-                className={`px-8 py-3 rounded-[20px] font-medium transition-all ${
+                className={`flex-1 sm:flex-initial px-4 sm:px-8 py-2 sm:py-3 rounded-[20px] font-medium transition-all text-sm sm:text-base ${
                   billingPeriod === "yearly"
                     ? "bg-white text-black"
                     : "text-gray-300 hover:text-white"
@@ -437,16 +393,17 @@ const PricingPage = () => {
               </button>
             </div>
           </div>
+
           {/* Site Count Selector */}
-          <div className="flex justify-center mb-12">
-            <div className="border-b border-[#4d4d4d4e] p-2 flex space-x-2">
+          <div className="flex justify-center mb-8 sm:mb-12 px-4">
+            <div className="border-b border-[#4d4d4d4e] p-2 flex flex-wrap justify-center gap-2">
               {siteOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setSiteCount(option.value)}
-                  className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                  className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
                     siteCount === option.value
-                      ? " text-white"
+                      ? "text-white"
                       : "text-[#afafafb0] hover:text-white"
                   }`}
                 >
@@ -456,8 +413,9 @@ const PricingPage = () => {
             </div>
           </div>
         </div>
+
         {/* Plans */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto mb-16 sm:mb-20">
           {plans.map((plan, idx) => (
             <div
               key={idx}
@@ -482,18 +440,16 @@ const PricingPage = () => {
                 }`}
               >
                 <div
-                  className={`p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl h-full relative  ${
+                  className={`p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl h-full relative ${
                     plan.highlight
                       ? "bg-gradient-to-b from-[#030303ce] via-[#f94cff0d] to-[#f94cff06]"
                       : "bg-gradient-to-b from-[#181818] to-black border border-gray-700/50"
                   } ${!plan.highlight ? "mt-0 sm:mt-6 lg:mt-10" : ""}`}
                 >
-                  {/* Animated background gradient */}
                   {plan.highlight && (
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-pink-500/5 to-purple-800/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   )}
 
-                  {/* Badge for PRO */}
                   {plan.subtitle && (
                     <span className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2 text-xs font-semibold px-3 py-1 bg-gradient-to-r from-[#f94cff] to-[#c44cff] text-white rounded-full shadow-lg animate-pulse">
                       {plan.subtitle}
@@ -518,7 +474,6 @@ const PricingPage = () => {
                       {plan.desc}
                     </p>
 
-                    {/* Button */}
                     <button
                       className={`mt-4 sm:mt-6 w-full py-2.5 sm:py-3 rounded-full font-semibold text-sm sm:text-base transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                         plan.highlight
@@ -529,7 +484,6 @@ const PricingPage = () => {
                       {plan.button}
                     </button>
 
-                    {/* Features */}
                     <ul className="mt-4 sm:mt-6 space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-300">
                       {plan.features.map((feature, i) => (
                         <li
@@ -541,7 +495,7 @@ const PricingPage = () => {
                           }`}
                           style={{ transitionDelay: `${idx * 150 + i * 50}ms` }}
                         >
-                          <FaRegCheckCircle />
+                          <FaRegCheckCircle className="flex-shrink-0" />
                           <span className="leading-relaxed">{feature}</span>
                         </li>
                       ))}
@@ -554,19 +508,19 @@ const PricingPage = () => {
         </div>
 
         {/* Comparison Section */}
-        <div className="mb-20">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">
+        <div className="mb-16 sm:mb-20">
+          <div className="text-center mb-8 sm:mb-12 px-4">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
               Two solutions to make the life of a designer, simple.
             </h2>
-            <p className="text-gray-300">
+            <p className="text-sm sm:text-base text-gray-300">
               Whether you&apos;re looking to build your portfolio, or find your
               next freelance client — we have a plan for you.
             </p>
           </div>
 
-          <div className=" rounded-xl overflow-hidden">
-            {/* Plan Headers */}
+          {/* Desktop Comparison Table */}
+          <div className="hidden lg:block rounded-xl overflow-hidden">
             <div className="grid grid-cols-4 gap-0 border-b border-[#3737373b]">
               <div className="p-6"></div>
               {comparisonPlans.map((plan, index) => (
@@ -594,7 +548,6 @@ const PricingPage = () => {
               ))}
             </div>
 
-            {/* Feature Categories */}
             {featureCategories.map((category, categoryIndex) => (
               <div key={categoryIndex}>
                 <div className="bg-[#2121211d] p-4">
@@ -615,6 +568,62 @@ const PricingPage = () => {
                     <div className="p-4 text-center border-l border-[#37373737]">
                       {renderFeatureValue(feature.enterprise)}
                     </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile/Tablet Comparison Cards */}
+          <div className="lg:hidden space-y-6">
+            {comparisonPlans.map((plan, planIndex) => (
+              <div
+                key={planIndex}
+                className="border border-[#37373737] rounded-xl overflow-hidden"
+              >
+                <div className="bg-[#2121211d] p-4 text-center">
+                  <h3 className="font-semibold text-lg mb-2">{plan.name}</h3>
+                  <div className="mb-4">
+                    <span className="text-2xl font-bold">{plan.price}</span>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {plan.period}
+                    </div>
+                  </div>
+                  <button
+                    className={`w-full py-2 rounded-3xl text-sm font-medium ${
+                      planIndex === 1
+                        ? "bg-white text-black"
+                        : "border border-[#37373737] text-gray-300"
+                    }`}
+                  >
+                    {planIndex === 1 ? "Continue with Teams" : "Get Started"}
+                  </button>
+                </div>
+
+                {featureCategories.map((category, categoryIndex) => (
+                  <div key={categoryIndex}>
+                    <div className="bg-[#18181899] p-3">
+                      <h4 className="font-semibold text-sm">
+                        {category.category}
+                      </h4>
+                    </div>
+                    {category.features.map((feature, featureIndex) => (
+                      <div
+                        key={featureIndex}
+                        className="flex items-center justify-between p-3 border-b border-[#37373737] text-sm"
+                      >
+                        <span className="text-gray-300">{feature.name}</span>
+                        <div>
+                          {renderFeatureValue(
+                            planIndex === 0
+                              ? feature.free
+                              : planIndex === 1
+                              ? feature.teams
+                              : feature.enterprise
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>

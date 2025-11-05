@@ -24,6 +24,8 @@ import Logo from "../../public/Logo.png";
 import { FaWordpress } from "react-icons/fa";
 import { useContext } from "react";
 import { GuideContext } from "./contexts/GuideContext";
+import { Readable } from "stream";
+import Link from "next/link";
 
 // Type definitions
 interface Message {
@@ -205,8 +207,10 @@ const PageContent = () => {
   const guideContext = useContext(GuideContext);
   const contextWorkflowRef = guideContext?.workflowButtonRef;
 
-  const [siteid, setSiteid] = useState("");
-  const [siteurl, setSiteurl] = useState("");
+  const [siteid, setSiteid] = useState(sessionStorage.getItem("siteId") || "");
+  const [siteurl, setSiteurl] = useState(
+    sessionStorage.getItem("siteurl") || ""
+  );
 
   // Connect workflow button ref to context (only if context exists)
   useEffect(() => {
@@ -216,12 +220,12 @@ const PageContent = () => {
   }, [contextWorkflowRef]);
 
   // Initialize siteid and siteurl from sessionStorage on client side
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSiteid(sessionStorage.getItem("siteId") || "");
-      setSiteurl(sessionStorage.getItem("siteurl") || "");
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (typeof window !== "undefined") {
+  //     setSiteid(sessionStorage.getItem("siteId") || "");
+  //     setSiteurl(sessionStorage.getItem("siteurl") || "");
+  //   }
+  // }, []);
 
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [sitedata, setSitedata] = useState<SiteData>({});
@@ -394,10 +398,10 @@ const PageContent = () => {
 
       if (res?.data?.success) {
         if (res?.data?.site?.status === "active") {
-          if (typeof window !== "undefined") {
-            sessionStorage.setItem("siteId", res?.data?.site?._id);
-            sessionStorage.setItem("siteurl", res?.data?.site?.site_url);
-          }
+          // if (typeof window !== "undefined") {
+          sessionStorage.setItem("siteId", res?.data?.site?._id);
+          sessionStorage.setItem("siteurl", res?.data?.site?.site_url);
+          // }
         }
       }
       // console.log(res?.data?.success);
@@ -491,6 +495,7 @@ const PageContent = () => {
     uploadedImages.forEach((file) => {
       formData.append("images", file);
     });
+    setPrompt("");
     try {
       const conversationHistory = conversation
         .filter((msg) => msg.type === "user" || msg.type === "ai")
@@ -501,10 +506,19 @@ const PageContent = () => {
 
       conversationHistory.push({ role: "user", content: prompt });
       formData.append("conversation", JSON.stringify(conversationHistory));
+      // Receive stream messages from the backend
+      // const response = await axios.post(`${NEXT_PUBLIC_API}/test`, formData, {
+      //   headers: { "Content-Type": "multipart/form-data" },
+      //   responseType: "stream",
+      // });
+      // const reader = response.data.pipe(new Readable());
+      // reader.on("data", (chunk: any) => {
+      //   console.log(chunk, "chunk");
+      // });
       const response = await axios.post(`${NEXT_PUBLIC_API}/test`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
+      console.log(response?.data, "res?.data?.data");
       const rawData = response.data?.data;
 
       // Normalize the backend response
@@ -636,10 +650,10 @@ const PageContent = () => {
   useEffect(() => {
     getMessages();
     // Only access sessionStorage on client side
-    if (typeof window !== "undefined") {
-      setSiteid(sessionStorage.getItem("siteId") || "");
-      setSiteurl(sessionStorage.getItem("siteurl") || "");
-    }
+    // if (typeof window !== "undefined") {
+    // setSiteid(sessionStorage.getItem("siteId") || "");
+    // setSiteurl(sessionStorage.getItem("siteurl") || "");
+    // }
     getsitedetails();
   }, []);
   const getMessages = async () => {
@@ -713,10 +727,78 @@ const PageContent = () => {
 
   return (
     <div
-      className={`duration-200 flex-col sm:flex-row-reverse p-2 flex  w-full items-center justify-center h-full ${
+      className={`duration-200  flex-col sm:flex-row-reverse md:p-2 flex  w-full items-center justify-center h-full ${
         reload === false ? "border-transparent gap-2" : "border-transparent"
       }`}
     >
+      <div className="h-[40px]  w-full sm:hidden text-white bg-[#2C2D30] flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <div className="text-[12px] bg-[#1C1C1C]  border-2 border-[#1C1C1C] flex items-center rounded-full">
+            <div
+              onClick={() => setSitetab("website")}
+              className={`px-2 py-1 flex gap-2   ${
+                siteTab === "website" && " bg-white text-black"
+              }  items-center rounded-full`}
+            >
+              Website
+            </div>
+            <div
+              // href={"/webapp"}
+              onClick={() => setSitetab("chat")}
+              className="relative group px-2 py-1  gap-2  rounded-full   hover:text-white duration-300   flex flex-col items-center cursor-pointer"
+            >
+              <div className="  text-white duration-300 ">Chat</div>
+              {/* Tooltip */}
+              <div className="absolute left-[60px] top-1/2 -translate-y-1/2 bg-[#222] text-[#767676] text-[14px] px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 whitespace-nowrap"></div>
+            </div>
+            <Link
+              href={"/webapp/dashboard"}
+              className="relative group px-2 py-1  gap-2  rounded-full   hover:text-white duration-300   flex flex-col items-center cursor-pointer"
+            >
+              <div className="  text-white duration-300 ">Dashboard</div>
+              {/* Tooltip */}
+              <div className="absolute left-[60px] top-1/2 -translate-y-1/2 bg-[#222] text-[#767676] text-[14px] px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 whitespace-nowrap"></div>
+            </Link>
+            <div
+              ref={workflowButtonRef}
+              onClick={() => setSitetab("responsive workflow")}
+              className={`px-2 py-1 flex gap-2  items-center ${
+                siteTab === "workflow" && " bg-white text-black"
+              }    rounded-full`}
+            >
+              <div> Workflow </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex  items-center gap-4">
+          <div
+            className="text-[14px] font-bold cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => {
+              // Cycle through: default -> fullscreen -> chat-focused -> default
+              if (layoutMode === "default") {
+                setLayoutMode("fullscreen");
+              } else if (layoutMode === "fullscreen") {
+                setLayoutMode("chat-focused");
+              } else {
+                setLayoutMode("default");
+              }
+            }}
+          >
+            <MdAspectRatio />
+          </div>
+          <FiExternalLink
+            className={`cursor-pointer hover:opacity-80 transition-opacity ${
+              !siteurl ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={() => {
+              if (siteurl) {
+                const urlToOpen = link || siteurl;
+                window.open(urlToOpen, "_blank", "noopener,noreferrer");
+              }
+            }}
+          />
+        </div>
+      </div>
       <div
         style={{
           backgroundImage: `url(${Bg.src})`,
@@ -735,10 +817,10 @@ const PageContent = () => {
             : "w-[30%]"
         }
         ${!siteurl ? "h-screen sm:h-full" : "h-full"} ${
-          siteurl ? "pn:max-sm:hidden" : ""
-        } border border-[#ffffff10]   bg-contain bg-[#2c2d3061] flex flex-col rounded-2xl items-center justify-center overflow-hidden`}
+          siteurl ? "" : ""
+        } border border-[#ffffff10] bg-contain bg-[#2c2d3061] flex flex-col rounded-2xl items-center justify-center overflow-hidden`}
       >
-        <div className="h-[40px]   w-full bg-[#2C2D30] flex items-center justify-between px-4">
+        <div className="h-[40px] w-full hidden sm:flex bg-[#2C2D30]  items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <FaAnglesLeft
               className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -812,7 +894,7 @@ const PageContent = () => {
               style={{ border: "none" }}
             />
           ) : (
-            <div className="w-full  h-full flex items-center justify-center flex-col p-4">
+            <div className="w-full   h-full flex items-center justify-center flex-col p-4">
               <div
                 className={`duration-100 
                  text-[#fff] text-[40px]  text-center font-bold
@@ -885,8 +967,89 @@ const PageContent = () => {
             </div>
           )
         ) : (
-          // PRD SEction
-          <div className="w-full h-full">{/* Fetch streamMessages  */}</div>
+          // Workflow section
+          <div className={`w-full  h-full p-6 overflow-auto ${siteTab==="responsive workflow"?"":"pn:max-sm:hidden"}`}>
+            <div className="flex flex-col items-center justify-center h-full">
+              {/* Root Node - Site Name */}
+              <div className="relative mb-8">
+                <div className="bg-gradient-to-br from-[#7B1459] via-[#7D2B62] to-[#72147B] text-white px-6 py-3 rounded-xl font-semibold text-lg shadow-lg border-2 border-[#ffffff20]">
+                  {sitedata?.site_url
+                    ? (() => {
+                        try {
+                          return new URL(sitedata.site_url).hostname;
+                        } catch {
+                          return sitedata.site_url;
+                        }
+                      })()
+                    : siteurl || "Your Site"}
+                </div>
+                {/* Vertical line from root to children */}
+                <div className="absolute left-1/2 top-full w-0.5 h-8 bg-gray-500 transform -translate-x-1/2"></div>
+              </div>
+
+              {/* Child Nodes Container */}
+              <div className="flex flex-wrap items-start justify-center gap-6 relative">
+                {/* Horizontal connector line */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gray-500 -translate-y-4"></div>
+
+                {/* Posts Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    Posts
+                  </div>
+                </div>
+
+                {/* Pages Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    Pages
+                  </div>
+                </div>
+
+                {/* Plugins Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    Plugins
+                  </div>
+                </div>
+
+                {/* Settings Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    Settings
+                  </div>
+                </div>
+
+                {/* Themes Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    Themes
+                  </div>
+                </div>
+
+                {/* SEO Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    SEO
+                  </div>
+                </div>
+
+                {/* Query Node */}
+                <div className="relative flex flex-col items-center">
+                  <div className="absolute top-0 left-1/2 w-0.5 h-4 bg-gray-500 transform -translate-x-1/2 -translate-y-full"></div>
+                  <div className="bg-[#2c2d30] hover:bg-[#3a3b3e] text-white px-5 py-3 rounded-lg font-medium cursor-pointer transition-colors border border-[#ffffff10] shadow-md min-w-[120px] text-center">
+                    Query
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
       {/* Chatting Area */}
@@ -900,6 +1063,8 @@ const PageContent = () => {
               : tab === "tab"
               ? "w-[100%] sm:w-[30%]"
               : "w-[70%]"
+          } ${
+            siteTab === "chat" ? "" : "pn:max-sm:hidden"
           } relative flex flex-col  overflow-hidden h-full
 
         `}
@@ -908,7 +1073,7 @@ const PageContent = () => {
           <div
             className={`${
               reload === false
-                ? "h-[calc(100vh-150px)]  w-[100%] items-start justify-start flex "
+                ? "sm:h-[calc(100vh-150px)]  h-[calc(100vh-100px)]  w-[100%] items-start justify-start flex "
                 : "hidden"
             }`}
           >
@@ -976,8 +1141,8 @@ const PageContent = () => {
 
                           <div
                             className={`flex flex-col ${
-                              isUserMessage ? "items-end" : "items-start"
-                            } max-w-[75%] sm:max-w-[80%]`}
+                              isUserMessage ? "items-end " : "items-start "
+                            } max-w-[75%] sm:max-w-[70%] `}
                           >
                             {/* Date and sender name */}
                             <div
@@ -985,10 +1150,10 @@ const PageContent = () => {
                                 isUserMessage ? "flex-row-reverse" : ""
                               }`}
                             >
-                              <span className="text-xs text-gray-400">
+                              {/* <span className="text-xs text-gray-400">
                                 {getDummyDate()}
-                              </span>
-                              <span className="text-xs text-gray-500">
+                              </span> */}
+                              <span className="text-xs  text-gray-500">
                                 {isUserMessage ? "You" : "Webivus"}
                               </span>
                             </div>
@@ -1011,7 +1176,7 @@ const PageContent = () => {
                                   isUserMessage
                                     ? "bg-gradient-to-br from-[#7B1459] via-[#7D2B62] to-[#72147B] text-white rounded-tr-sm"
                                     : msg.type === "system"
-                                    ? "bg-[#2c2d30] text-gray-300 rounded-lg text-xs opacity-80"
+                                    ? "bg-[#2c2d30] text-gray-300  rounded-lg text-xs opacity-80"
                                     : "bg-[#2c2d30] text-gray-100 rounded-tl-sm border border-[#ffffff05]"
                                 }`}
                               >
@@ -1344,7 +1509,7 @@ const PageContent = () => {
 
           {/* Input Area */}
           <div
-            className={`duration-200 absolute bottom-0 z-10 ${
+            className={`duration-200  absolute bottom-0 z-10 ${
               reload === false
                 ? "text-[#626262] gap-2 flex items-end p-2 mt-4  w-[100%] rounded-2xl border border-[#ffffff26] bg-[#2f323a] text-center text-[16px]"
                 : "text-[#626262] gap-2 flex items-end w-[20%] p-2 mt-4  rounded-2xl border border-[#ffffff26] bg-[#2f323a] text-center text-[16px]"
@@ -1379,7 +1544,7 @@ const PageContent = () => {
               />
             </div>
             {/* Image upload */}
-            <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full ">
+            {/* <label className="cursor-pointer flex items-center justify-center w-[30px] h-[30px] rounded-full ">
               <ImageIcon size={18} className="text-white" />
               <input
                 type="file"
@@ -1388,7 +1553,7 @@ const PageContent = () => {
                 onChange={handleImageUpload}
                 className="hidden"
               />
-            </label>
+            </label> */}
             {/* Uploaded thumbnails */}
             {uploadedImages.length > 0 && (
               <div className="flex gap-2">

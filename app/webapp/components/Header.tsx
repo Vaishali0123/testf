@@ -39,6 +39,7 @@ import { IoMdCloud } from "react-icons/io";
 import PricingPage from "@/app/(landing)/pricing/page";
 import { useContext } from "react";
 import { GuideContext } from "../contexts/GuideContext";
+import { FaShopify, FaWordpress } from "react-icons/fa6";
 
 interface Site {
   _id: string;
@@ -527,7 +528,7 @@ const Header = () => {
             {/* Header with title and close button */}
             <div className="flex justify-between items-center p-6 border-b border-[#333]">
               <h2 className="text-2xl font-bold text-white">
-                Profile Settings
+                Workspace
               </h2>
               <div className="flex gap-3 items-center">
                 <button
@@ -544,6 +545,7 @@ const Header = () => {
 
             {/* Main Layout: Sidebar + Content */}
             <div className="flex flex-1 overflow-hidden">
+
               {/* Left Sidebar */}
               <div className="w-[240px] bg-[#1A1A1A] border-r border-[#333] overflow-y-auto flex flex-col">
                 {/* Workspace Section */}
@@ -593,6 +595,20 @@ const Header = () => {
                       <FiLayers className="w-5 h-5" />
                       <span>Plans & credits</span>
                     </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab("billing");
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        activeTab === "billing"
+                          ? "bg-[#2c2d30] text-white"
+                          : "text-gray-400 hover:text-white hover:bg-[#2c2d30]/50"
+                      }`}
+                    >
+                      <FiFileText className="w-5 h-5" />
+                      <span>Billing History & Usage</span>
+                    </button>
+                    
                   </div>
                 </div>
 
@@ -613,22 +629,22 @@ const Header = () => {
                       }`}
                     >
                       <FiUser className="w-5 h-5" />
-                      <span>Your Account</span>
+                      <span>Account</span>
                     </button>
 
-                    <button
+                    {/* <button
                       onClick={() => {
-                        setActiveTab("billing");
+                        setActiveTab("integrations");
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        activeTab === "billing"
+                        activeTab === "integrations"
                           ? "bg-[#2c2d30] text-white"
                           : "text-gray-400 hover:text-white hover:bg-[#2c2d30]/50"
                       }`}
                     >
-                      <FiFileText className="w-5 h-5" />
-                      <span>Billing History</span>
-                    </button>
+                      <FiPhone className="w-5 h-5" />
+                      <span>Integrations</span>
+                    </button> */}
                     <button
                       onClick={() => {
                         setActiveTab("support");
@@ -642,11 +658,36 @@ const Header = () => {
                       <FiPhone className="w-5 h-5" />
                       <span>Contact Support</span>
                     </button>
+                    
                   </div>
                 </div>
-
-                {/* Integrations Section */}
-                <div className="p-4 border-t border-[#333] mt-auto">
+               {/* Integrations Section for wordpress */}
+               <div className="p-4 border-t border-[#333]">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setActiveTab("wordpress")}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    <FaWordpress className="w-5 h-5" />
+                    <span>Wordpress</span>
+                  </button>
+                </div>
+               </div>
+               {/* Integrations Section for shopify */}
+               <div className="p-4 border-t border-[#333]">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setActiveTab("shopify")}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
+                  >
+                    <FaShopify className="w-5 h-5" />
+                    <span>Shopify</span>
+                  </button>
+                </div>
+               </div>
+              
+                {/* Logout Section */}
+                <div className="p-4 border-t border-[#333]  mt-auto">
                   <div className="space-y-1">
                     <button
                       onClick={() => setShowLogoutPopup(true)}
@@ -672,16 +713,16 @@ const Header = () => {
                       <div className="flex items-start gap-6">
                         <div className="w-48 flex-shrink-0">
                           <label className="block text-sm font-bold text-white mb-1">
-                            Your Avatar
+                            Account Information
                           </label>
-                          <p className="text-xs text-gray-400">
+                          {/* <p className="text-xs text-gray-400">
                             Your avatar automatically generated based on your
                             account.
-                          </p>
+                          </p> */}
                         </div>
-                        <div className="flex-1 flex items-center gap-3">
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr  from-[#932E75] to-[#95437D] flex items-center justify-center">
+                        {/* <div className="flex-1 flex items-center gap-3"> */}
+                          {/* <div className="relative"> */}
+                            {/* <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr  from-[#932E75] to-[#95437D] flex items-center justify-center">
                               <span className="text-white font-bold text-lg">
                                 {data?.username?.charAt(0)?.toUpperCase() ||
                                   data?.user?.username
@@ -689,12 +730,12 @@ const Header = () => {
                                     ?.toUpperCase() ||
                                   "U"}
                               </span>
-                            </div>
+                            </div> */}
                             {/* <button className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#2c2d30] border border-[#333] flex items-center justify-center hover:bg-[#3c3d40] transition-colors">
                               <FiChevronDown className="w-3 h-3 text-gray-400" />
                             </button> */}
-                          </div>
-                        </div>
+                          {/* </div> */}
+                        {/* </div> */}
                       </div>
 
                       {/* Username */}
@@ -704,16 +745,14 @@ const Header = () => {
                             Username
                           </label>
                           <p className="text-xs text-gray-400">
-                            Your public identifier and profile URL.
+                            Your username
                           </p>
                         </div>
                         <div className="flex-1 space-y-2">
                           <input
                             type="text"
                             value={
-                              data?._id?.slice(0, 30) ||
-                              data?.user?._id?.slice(0, 30) ||
-                              "ZGF3Lc0Hvncb4xAeNGQndSORM4c2"
+                              data?.username || data?.user?.username || "User"
                             }
                             readOnly
                             className="w-full px-4 py-2 rounded-lg bg-[#2c2d30] border border-[#333] text-white focus:outline-none focus:border-[#555] text-sm"
@@ -758,14 +797,14 @@ const Header = () => {
                         </div>
                       </div>
 
-                      {/* Name */}
+                      {/*  First  Name */}
                       <div className="flex items-start gap-6">
                         <div className="w-48 flex-shrink-0">
                           <label className="block text-sm font-bold text-white mb-1">
-                            Name
+                            First Name
                           </label>
                           <p className="text-xs text-gray-400">
-                            Your full name, as visible to others.
+                            Your first name, as visible to others.
                           </p>
                         </div>
                         <div className="flex-1">
@@ -776,7 +815,38 @@ const Header = () => {
                           />
                         </div>
                       </div>
-
+                       {/* Last Name */}
+                       <div className="flex items-start gap-6">
+                        <div className="w-48 flex-shrink-0">
+                          <label className="block text-sm font-bold text-white mb-1">
+                          Last Name
+                          </label>
+                          {/* <p className="text-xs text-gray-400">
+                            Your full name, as visible to others.
+                          </p> */}
+                        </div>
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            placeholder="Enter your name"
+                            className="w-full px-4 py-2 rounded-lg bg-[#2c2d30] border border-[#333] text-white placeholder-gray-500 focus:outline-none focus:border-[#555] text-sm"
+                          />
+                        </div>
+                      </div>
+{/* delete account button */}
+<div className="flex items-start gap-6">
+                        <div className="w-48 flex-shrink-0">
+                          <label className="block text-sm font-bold text-white mb-1">
+                          Permanently delete account
+                          </label>
+                          {/* <p className="text-xs text-gray-400">
+                            Your full name, as visible to others.
+                          </p> */}
+                        </div>
+                        <div className="flex-1">
+                          <button className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-400 text-white font-medium transition-colors text-sm">Delete Account</button>
+                        </div>
+                      </div>
                       {/* Description */}
                       {/* <div className="flex items-start gap-6">
                         <div className="w-48 flex-shrink-0">
@@ -833,6 +903,12 @@ const Header = () => {
                           />
                         </div>
                       </div> */}
+                       <div className="flex items-center gap-2 opacity-50">
+                <input type="checkbox" checked className="rounded" />
+                <span>We will use your data for accurate responses and training</span>
+              </div>
+           
+           
                       {/* Header with Update Button */}
                       <div className="flex items-center justify-end mb-4">
                         <button className="px-4 py-2 rounded-lg bg-[#2c2d30] hover:bg-opacity-[80%] text-white font-medium transition-colors text-sm">
@@ -1460,6 +1536,10 @@ const Header = () => {
                   )}
                 </div>
               </div>
+             
+              {/* Add check box and selected in defaultfor privacy mode that We will use your data for accurate responses and training */}
+             
+             
             </div>
           </div>
         </div>

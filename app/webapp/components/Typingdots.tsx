@@ -3,8 +3,8 @@ import React from "react";
 
 const TypingDots = ({
   size = 8,
-  color = "#10B981",
-  gap = 4,
+  color = "#888",
+  gap = 6,
   className = "",
 }: {
   size?: number;
@@ -14,18 +14,19 @@ const TypingDots = ({
 }) => {
   return (
     <div
-      className={`flex items-center justify-start ${className}`}
+      className={`flex items-center justify-center ${className}`}
       style={{ gap: `${gap}px` }}
     >
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="animate-typing-bounce rounded-full"
+          className="animate-typing-pulse rounded-full"
           style={{
             width: `${size}px`,
             height: `${size}px`,
             backgroundColor: color,
-            animationDelay: `${i * 0.2}s`,
+            animationDelay: `${i * 0.15}s`,
+            boxShadow: `0 0 ${size / 2}px ${color}40`,
           }}
         />
       ))}

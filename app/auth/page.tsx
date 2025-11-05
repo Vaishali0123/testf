@@ -20,6 +20,9 @@ import Step1ConnectWordPress from "./components/Step1ConnectWordPress";
 import Step2WhatYourRole from "./components/Step2WhatYourRole";
 import Step3HowDidYouFindUs from "./components/Step3HowDidYouFindUs";
 import ForgotPasswordFlow from "./components/ForgotPasswordFlow";
+import Logo from "../(landing)/components/Logo";
+import Link from "next/link";
+import { IoArrowBackOutline } from "react-icons/io5";
 
 interface PageProps {
   text?: string;
@@ -391,6 +394,13 @@ const Page = ({ text, speed = 100, delay = 0 }: PageProps) => {
       className="w-full min-h-screen p-3 sm:p-6 flex relative items-center justify-center bg-[#18191C] bg-cover text-white overflow-x-hidden"
     >
       <Toaster />
+      <Link
+        href="/"
+        className="absolute flex items-center gap-2 hover:bg-white/5 hover:ring-1 duration-100 hover:ring-white/10 py-1 px-2 rounded-full text-[12px] top-2 left-2"
+      >
+        <IoArrowBackOutline />
+        back to the landing
+      </Link>
       {/* <div className="absolute -top-[30%] w-[70%] rounded-full h-[50%] bg-[#f94cff21] blur-3xl hidden sm:block"></div> */}
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#f94cff21] via-transparent to-transparent sm:hidden"></div>
 
@@ -438,18 +448,15 @@ const Page = ({ text, speed = 100, delay = 0 }: PageProps) => {
           </div>
         </div>
       )}
-      <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 lg:gap-12">
+      <div className="w-full max-w-7xl mt-10 sm:mt-0 mx-auto flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 lg:gap-12">
         {/* left */}
         <div className="w-full lg:w-[50%] flex flex-col items-center lg:items-start justify-center text-center lg:text-left order-1 lg:order-1">
           <div className="w-full max-w-lg space-y-4">
             <div className="flex items-center cursor-auto bg-gradient-to-l from-white/10 to-white/0 w-fit py-2 px-4 rounded-full gap-2 mx-auto lg:mx-0">
-              <Image
-                src="/logo.png"
-                alt="logo"
-                width={30}
-                height={30}
-                className="-ml-2"
-              />
+              <div className="-ml-2 h-[30px] w-[30px]">
+                <Logo />
+              </div>
+
               <span className="text-sm sm:text-base">
                 From &quot;What now?&quot; to &quot;All set.&quot; In one chat.
               </span>

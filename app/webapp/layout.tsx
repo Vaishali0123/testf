@@ -22,17 +22,17 @@ export default function RootLayout({
           backgroundPosition: "top",
           backgroundRepeat: "no-repeat",
         }}
-        className="bg-[#18191C] bg-cover min-h-screen text-white"
+        className="bg-[#18191C]  bg-cover min-h-screen text-white"
       >
         <Header />
-        <div className="flex gap-2 h-[calc(100%-60px)] pt-2">
+        <div className="flex pn:max-sm:flex-col gap-2 sm:h-[calc(100%-60px)] sm:pt-2">
           {/* ✅ Hide Navbar only on /webapp route */}
           {pathname == "/webapp/projects" ? null : (
-            <div>
+            <div className="pn:max-sm:hidden">
               <Navbar />
             </div>
           )}
-          <div className="w-full">{children}</div>
+          <div className="w-full ">{children}</div>
         </div>
         <GuideManager />
       </div>

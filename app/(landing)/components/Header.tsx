@@ -3,11 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { FiExternalLink } from "react-icons/fi";
-import { IoPricetagsOutline } from "react-icons/io5";
+import { IoPricetagOutline, IoPricetagsOutline } from "react-icons/io5";
 import { MdOutlineFeaturedPlayList } from "react-icons/md";
 import Logo from "./Logo";
 import { GrResources } from "react-icons/gr";
 import { VscDebugStart } from "react-icons/vsc";
+import { HiOutlineMenuAlt3 } from "react-icons/hi";
+import { RxCross2 } from "react-icons/rx";
+import { TbLogs, TbMoodEdit } from "react-icons/tb";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,17 +57,45 @@ const Header = () => {
         <div className="font-semibold">Webivus</div>
       </Link>
       <div className="flex items-center gap-2">
-        <div className="flex text-[12px] gap-1 p-1 bg-[#35353544] border border-white/5 rounded-full">
+        <div className=" text-[14px] hidden md:flex items-center gap-4 mr-8">
+          <Link
+            href="../blogs"
+            className="flex items-center gap-2 duration-300 px-3 py-2 hover:ring-1 ring-white/20 rounded-full hover:bg-white/5"
+          >
+            <TbLogs />
+            Blog
+          </Link>
+          <Link
+            href={"../feature"}
+            className="flex items-center gap-2 duration-300 px-3 py-2 hover:ring-1 ring-white/20 rounded-full hover:bg-white/5"
+          >
+            <TbMoodEdit />
+            Features
+          </Link>
+          <Link
+            href={"../pricing"}
+            className="flex items-center gap-2 duration-300 px-3 py-2 hover:ring-1 ring-white/20 rounded-full hover:bg-white/5"
+          >
+            <IoPricetagOutline />
+            Pricing
+          </Link>
+        </div>
+        <div className="flex sm:flex-row flex-row-reverse text-[12px] gap-1 p-1 sm:bg-[#35353544] sm:border sm:border-white/5 rounded-full">
           <div className="relative inline-block text-left">
             {/* Dropdown button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="border px-4 py-2 rounded-full bg-[#2C2C2C] border-white/5 text-white flex items-center gap-1 hover:bg-white/30"
+              className="border px-4 py-3 sm:py-2 rounded-full sm:bg-[#2C2C2C] sm:border-white/5 text-white flex items-center gap-1 hover:bg-white/30"
             >
-              <GrResources className="sm:hidden block" />
+              {/* <GrResources className="sm:hidden block" /> */}
+              {isOpen ? (
+                <RxCross2 className="sm:hidden block" />
+              ) : (
+                <HiOutlineMenuAlt3 className="sm:hidden block" />
+              )}
               <span className="hidden sm:block">Resources</span>
               <svg
-                className={`w-4 h-4 transition-transform ${
+                className={`w-4 h-4 hidden sm:block transition-transform ${
                   isOpen ? "rotate-180" : "rotate-0"
                 }`}
                 fill="none"
@@ -82,35 +113,35 @@ const Header = () => {
 
             {/* Dropdown menu */}
             {isOpen && (
-              <div className="absolute mt-2 w-56 rounded-xl bg-black text-white shadow-lg ring-1 ring-white/10 p-3 space-y-2 z-50">
+              <div className="absolute mt-2 w-56 rounded-xl bg-black right-0 text-white shadow-lg ring-1 ring-white/10 p-3 space-y-2 z-50">
                 <Link
-                  href="../landing/blogs"
-                  className="block px-3 py-2 rounded-md hover:bg-white/10"
+                  href="../blogs"
+                  className="md:flex items-center hidden px-3 py-2 rounded-md hover:bg-white/10"
                 >
                   Blog
                 </Link>
                 <Link
-                  href={"../landing/feature"}
-                  className="flex items-center justify-between px-3 py-2 rounded-md  hover:bg-white/10"
+                  href={"../feature"}
+                  className="md:flex items-center hidden justify-between px-3 py-2 rounded-md  hover:bg-white/10"
                 >
                   Features
                 </Link>
                 <Link
-                  href={"../landing/pricing"}
-                  className="flex items-center justify-between px-3 py-2 rounded-md  hover:bg-white/10"
+                  href={"../pricing"}
+                  className="md:flex items-center hidden justify-between px-3 py-2 rounded-md  hover:bg-white/10"
                 >
                   Pricing
                 </Link>
                 <Link
-                  href="../landing/affiliate"
-                  className="flex items-center justify-between px-3 py-2 rounded-md  hover:bg-white/10"
+                  href="../affiliate"
+                  className="flex items-center  justify-between px-3 py-2 rounded-md  hover:bg-white/10"
                 >
                   Affiliate
                   <FiExternalLink className="w-4 h-4" />
                 </Link>
 
                 <Link
-                  href="../landing/support"
+                  href="../support"
                   className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-white/10"
                 >
                   Support
@@ -131,8 +162,9 @@ const Header = () => {
             href={"../auth"}
             className="px-4 rounded-full cursor-pointer text-[#000] py-2 bg-white border"
           >
-            <VscDebugStart className="sm:hidden block" />
+            {/* <VscDebugStart className="sm:hidden block" /> */}
             <span className="hidden sm:block"> Get started</span>
+            <span className="sm:hidden block"> Login</span>
           </Link>
         </div>
       </div>

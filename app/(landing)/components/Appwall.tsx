@@ -349,14 +349,14 @@ const Appwall = () => {
 
                 {/* Content */}
                 <div className="relative text-[#fff] p-2 px-3 sm:px-4 font-semibold">
-                  Stop Spending Hours Fixing WordPress start Using Webivus AI
+                  Webivus – A WP Co-pilot {">"}
                 </div>
               </div>
-              <div className=" h-[200px]"></div>
+              <div className="  w-full h-[230px]"></div>
               <div
                 ref={dragRef}
                 onMouseDown={handleMouseDown}
-                className={`absolute w-[95%] sm:w-[80%] h-[200px]  lg:w-[60%] min-w-[280px]  sm:min-w-[400px] flex flex-col items-center z-50 select-none px-4 ${
+                className={`absolute w-[95%]  h-[200px]  sm:w-[80%] min-w-[280px]  sm:min-w-[400px] flex flex-col items-center z-50 select-none px-4 ${
                   isDragging ? "cursor-grabbing" : "cursor-grab"
                 }`}
                 style={{
@@ -388,11 +388,11 @@ const Appwall = () => {
                   A New Era of WordPress Management with Webivus AI
                 </div>
               </div>
+
               <div className="text-[#626262]  w-fit text-center text-[12px] sm:text-[14px] lg:text-[16px] mt-2 sm:mt-4">
-                Webivus is your multi-Agents AI-powered WordPress Co-Pilot. It
-                understands your site, remembers your needs, and helps you fix,
-                optimize, and grow — without hiring a developer for every small
-                issue
+                Webivus is your multi-Agents AI partner that manages, secures,
+                and optimizes WordPress sites — so you spend less time fixing
+                and more time building.
               </div>
               <Link
                 href={"../auth"}

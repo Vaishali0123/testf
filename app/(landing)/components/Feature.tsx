@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect, useRef } from "react";
 
 const Feature = () => {
@@ -132,7 +133,7 @@ const Feature = () => {
                 Features
               </div>
               <div className="text-[#fff] w-full text-[28px] sm:text-[32px] md:text-[36px] lg:text-[40px] font-semibold">
-                that are designed for you.
+                that are developed for you.
               </div>
             </div>
           </div>
@@ -142,16 +143,16 @@ const Feature = () => {
             className="pt-4 w-full sm:w-[90%] md:w-[85%] lg:w-[80%] fade-up"
           >
             <div className="text-[#959595] w-full text-[14px] sm:text-[15px] md:text-[16px]">
-              Introducing the freeform Design Editor packed with power beyond
-              your imagination, yet feels so incredibly simple to use. Style and
-              effect controls are meticulously timed to appear when you need
-              them, right where your cursor is. And whenever you are ready, just
-              hit publish to turn your site designs into an actual website. No
-              rebuilding, no handoffs, no coding.
+              Our platform brings everything you’ve ever wished WordPress could
+              do—into one intelligent chat. Every tool is designed to make site
+              management simple, smart, and stress-free. With AI-powered
+              commands, automated SEO, and effortless multi-site control, you
+              get complete command of your websites while saving time and
+              driving real growth.
             </div>
           </div>
 
-          <div className="w-full p-4 sm:p-6 md:p-8 lg:p-10 flex items-center flex-col gap-3 sm:gap-4 justify-center">
+          <div className="w-full pt-4 flex items-center flex-col gap-3 sm:gap-4 justify-center">
             {/* First Row */}
             <div
               ref={firstRowRef}
@@ -166,7 +167,7 @@ const Feature = () => {
                     alt="secure"
                     className="w-full h-[70%] sm:h-[80%] md:h-[90%] object-cover"
                   />
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                  <div className="absolute bottom-0 bg-black/10 p-2 rounded-xl ">
                     <div className="text-sm sm:text-base font-medium">
                       Secure Plugin Connection
                     </div>
@@ -178,7 +179,7 @@ const Feature = () => {
                   </div>
                 </div>
               </div>
-              <div className="h-[300px] sm:h-[320px] md:h-[350px] w-full md:w-[30%] bg-[#1B1B1B] rounded-2xl sm:rounded-3xl p-2 feature-card">
+              <div className="h-[300px] sm:h-[320px] md:h-[350px] w-full md:w-[30%] bg-[#1B1B1B] rounded-2xl sm:rounded-3xl feature-card">
                 <div className="h-full w-full border border-white/5 rounded-2xl sm:rounded-3xl overflow-hidden relative">
                   <Image
                     width={500}
@@ -187,7 +188,7 @@ const Feature = () => {
                     alt="code"
                     className="w-full h-[70%] sm:h-[80%] md:h-[90%] object-cover"
                   />
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                  <div className="absolute bottom-0 bg-black/10 p-2 rounded-xl">
                     <div className="text-sm sm:text-base font-medium">
                       Code-Level Assistance
                     </div>
@@ -199,7 +200,7 @@ const Feature = () => {
                   </div>
                 </div>
               </div>
-              <div className="h-[300px] sm:h-[320px] md:h-[350px] w-full md:w-[30%] bg-[#1B1B1B] rounded-2xl sm:rounded-3xl p-2 feature-card">
+              <div className="h-[300px] sm:h-[320px] md:h-[350px] w-full md:w-[30%] bg-[#1B1B1B] rounded-2xl sm:rounded-3xl  feature-card">
                 <div className="h-full w-full border border-white/5 rounded-2xl sm:rounded-3xl overflow-hidden relative">
                   <Image
                     width={500}
@@ -208,7 +209,7 @@ const Feature = () => {
                     alt="agent"
                     className="w-full h-auto object-cover"
                   />
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                  <div className="absolute bottom-0 bg-black/10 p-2 rounded-xl">
                     <div className="text-sm sm:text-base font-medium">
                       Multi-Agent Orchestration
                     </div>
@@ -236,7 +237,7 @@ const Feature = () => {
                     alt="trouble"
                     className="w-full h-auto object-cover"
                   />
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                  <div className="absolute bottom-0 bg-black/10 p-2 rounded-xl">
                     <div className="text-sm sm:text-base font-medium">
                       Human in Control
                     </div>
@@ -257,7 +258,7 @@ const Feature = () => {
                     alt="chat"
                     className="w-full h-[70%] sm:h-[80%] md:h-[90%] object-cover"
                   />
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                  <div className="absolute bottom-0 bg-black/10 p-2 rounded-xl">
                     <div className="text-sm sm:text-base font-medium">
                       Chat That Remembers
                     </div>
@@ -277,7 +278,7 @@ const Feature = () => {
                     alt="human"
                     className="w-full h-[70%] sm:h-[80%] md:h-[90%] object-cover"
                   />
-                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4">
+                  <div className="absolute bottom-0 bg-black/10 p-2 rounded-xl">
                     <div className="text-sm sm:text-base font-medium">
                       Context-Aware Troubleshooting
                     </div>
@@ -290,6 +291,18 @@ const Feature = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="w-full mt-10 flex items-center justify-between">
+            <div className="text-[#959595] w-full text-[14px] sm:text-[15px] md:text-[16px]">
+              Experience expertise crafted in 10+ more features
+            </div>
+            <Link
+              href="/features"
+              className="text-[#959595] flex-1 px-3 py-2 rounded-xl bg-white/10 border-[#ffffff25] border items-center justify-center gap-2 hover:bg-white/20 transition-colors cursor-pointer text-[14px] sm:text-[15px] md:text-[16px]"
+            >
+              view more
+            </Link>
           </div>
         </div>
       </div>

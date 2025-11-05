@@ -154,7 +154,7 @@ const Footer: React.FC = () => {
 
           {/* Right Section - Navigation Links */}
           <div
-            className={`grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 transform transition-all duration-1000 ease-out ${
+            className={`grid grid-cols-1 text-[14px] md:grid-cols-3 gap-6 sm:gap-8 transform transition-all duration-1000 ease-out ${
               isVisible
                 ? "translate-y-0 opacity-100"
                 : "translate-y-8 opacity-0"
@@ -164,19 +164,19 @@ const Footer: React.FC = () => {
             {/* First Column */}
 
             <div
-              className={`space-y-3 sm:space-y-4 transform transition-all duration-800 ease-out ${
+              className={`space-y-3  sm:space-y-4 transform transition-all duration-800 ease-out ${
                 isVisible
                   ? "translate-x-0 opacity-100"
                   : "translate-x-4 opacity-0"
               }`}
               style={{ transitionDelay: "600ms" }}
             >
-              <div className="text-[18px] font-semibold">Features </div>
+              <div className="text-[18px] font-semibold">Products </div>
               {[
                 { href: "/pricing", text: "Plans & Pricing" },
                 { href: "/feature", text: "Features" },
                 { href: "/blogs", text: "Blogs" },
-                
+                { href: "/Import to Figma", text: "Import to Figma" },
               ].map((link, index) => (
                 <Link
                   key={link.href}
@@ -225,6 +225,38 @@ const Footer: React.FC = () => {
                 </Link>
               ))}
             </div>
+            {/* Second Column */}
+
+            <div
+              className={`space-y-3 sm:space-y-4 transform transition-all duration-800 ease-out ${
+                isVisible
+                  ? "translate-x-0 opacity-100"
+                  : "translate-x-4 opacity-0"
+              }`}
+              style={{ transitionDelay: "700ms" }}
+            >
+              <div className="text-[18px] font-semibold">Legal </div>
+              {[
+                // { href: "/about", text: "About Us" },
+                { href: "/terms", text: "Privacy Policy" },
+                // { href: "/papers", text: "Papers" },
+                { href: "/privacy", text: "Terms of Service" },
+                { href: "/cookies", text: "Cookies Policy" },
+              ].map((link, index) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`block text-gray-300 hover:text-white hover:translate-x-1 transition-all duration-300 text-sm sm:text-base transform ${
+                    isVisible
+                      ? "translate-y-0 opacity-100"
+                      : "translate-y-3 opacity-0"
+                  }`}
+                  style={{ transitionDelay: `${1000 + index * 100}ms` }}
+                >
+                  {link.text}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -249,7 +281,7 @@ const Footer: React.FC = () => {
             </p>
 
             {/* Bottom Links */}
-            <div
+            {/* <div
               className={`flex flex-wrap justify-center lg:justify-end space-x-4 sm:space-x-6 transform transition-all duration-800 ease-out ${
                 isVisible
                   ? "translate-x-0 opacity-100"
@@ -275,7 +307,7 @@ const Footer: React.FC = () => {
                   {link.text}
                 </Link>
               ))}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

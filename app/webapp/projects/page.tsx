@@ -121,6 +121,8 @@ const Page = () => {
                     if (typeof window !== "undefined") {
                       sessionStorage.setItem("siteId", site._id);
                       sessionStorage.setItem("siteurl", site.site_url);
+                      // Site data
+                      sessionStorage.setItem("siteData", JSON.stringify(site));
                     }
                     router.push("/webapp");
                   }}

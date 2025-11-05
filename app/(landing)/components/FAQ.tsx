@@ -101,40 +101,36 @@ import { IoIosAdd } from "react-icons/io";
 
 const faqs = [
   {
-    question: "What is AI-powered CMS development?",
+    question: "Do I need technical knowledge?",
     answer:
-      "We use AI tools alongside expert developers to speed up CMS website development, optimize SEO, and create smarter websites that are faster, secure, and easy to manage.",
+      "None. If you can send a text message or speak, you can use Webivus.",
   },
   {
-    question: "Which CMS platforms do you work with?",
+    question: "How is this different from hiring a developer?",
     answer:
-      "We specialize in WordPress, Shopify, Webflow, WooCommerce, and custom CMS solutions — all enhanced with AI-powered optimizations for better performance and growth.",
+      "Developers charge $150-300 per task and take days. Webivus costs $49/month for unlimited tasks and works instantly, 24/7.",
   },
   {
-    question: "How fast can my website be ready?",
+    question: "Will it remember my preferences?",
     answer:
-      "Thanks to AI-assisted workflows, most websites can be ready in days instead of weeks, depending on complexity.",
+      "Yes! Webivus maintains your complete chat history. It remembers every conversation, every change, and learns your preferences over time.",
   },
   {
-    question: "Can I manage my website myself?",
+    question: "Can I really save thousands of dollars?",
     answer:
-      "Absolutely! All our CMS websites come with user-friendly dashboards, so you can edit content, add pages, or manage products without technical knowledge.",
+      "The average WordPress site owner spends $6,000-12,000 yearly on development and maintenance. Webivus costs $588/year. You do math.",
   },
   {
-    question: "Do you provide SEO and content optimization?",
+    question: "What about my site's security?",
     answer:
-      "Yes! Our AI tools help generate optimized content, structure pages for better SEO, and monitor analytics to boost traffic and conversions.",
+      "Webivus never stores passwords or sensitive data. All connections are encrypted. We only access what you explicitly approve.",
   },
   {
-    question: "Can you migrate my existing website to a new CMS?",
+    question: "Can I cancel anytime?",
     answer:
-      "Yes. We handle full migration, including content, images, plugins, and SEO settings, with minimal downtime.",
+      "Yes, no contracts or cancellation fees. Export your data anytime.",
   },
-  {
-    question: "Do you offer ongoing support?",
-    answer:
-      "We offer maintenance, updates, and AI-based performance monitoring to ensure your website stays fast, secure, and effective.",
-  },
+ 
 ];
 
 const FAQ: React.FC = () => {
@@ -209,8 +205,8 @@ const FAQ: React.FC = () => {
           Frequently Asked Questions
         </h2>
         <p className="text-sm md:text-base font-normal leading-relaxed text-[#e2e2e2]">
-          Answers to common questions about our AI-powered CMS development
-          services.
+        Straight Answers to Real Concerns
+         
         </p>
       </div>
 

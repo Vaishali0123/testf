@@ -297,28 +297,23 @@ export default function Howitwork() {
   const steps = [
     {
       icon: HiSparkles,
-      title: "Describe Your Idea",
-      description: "Simply type or speak your concept.",
+      title: "Connect",
+      description: "Once Install our lightweight plugin. It takes 60 seconds. No technical knowledge is needed.",
       color: "border-[#2DAA7F] bg-[#2daa7e32]",
     },
     {
       icon: HiPencil,
-      title: "AI Generates Designs",
-      description: "Images, videos, layouts, and code are created instantly.",
+      title: "Chat Naturally",
+      description: "Type what you want in plain English. Or speak it. Webivus understands both.",
       color: "border-[#2DAA7F] bg-[#2daa7e32]",
     },
     {
       icon: HiCog,
-      title: "Connect Your Tools",
-      description: "Sync with Figma, GitHub, and other integrations.",
+      title: "Approve & Watch",
+      description: "Review of the proposed changes. Click approve. Watch your site transform or manage in real time.",
       color: "border-[#2DAA7F] bg-[#2daa7e32]",
     },
-    {
-      icon: HiGlobe,
-      title: "Launch & Deploy",
-      description: "Attach a custom domain and go live with Cloudflare or AWS.",
-      color: "border-[#2DAA7F] bg-[#2daa7e32]",
-    },
+  
   ];
 
   useEffect(() => {
@@ -340,7 +335,7 @@ export default function Howitwork() {
 
       {/* Main Title */}
       <h1 className="text-center text-xl sm:text-3xl md:text-4xl text-[#C5C5C5] mb-10 sm:mb-14 md:mb-20 font-[Space_Grotesk] leading-snug">
-        From Idea to Live Website in Minutes
+      From Frustration to Fixed in Minutes
       </h1>
 
       {/* Steps and Preview */}

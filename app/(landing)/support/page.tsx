@@ -46,7 +46,7 @@ const Page = () => {
   ];
 
   return (
-    <div className="min-h-screen  text-white">
+    <div className="min-h-screen w-full  text-white">
       <style jsx>{`
         @keyframes fadeInUp {
           from {
@@ -166,10 +166,10 @@ const Page = () => {
       `}</style>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16">
+      <div className="sm:container md:mx-auto w-full px-4 sm:px-6 py-12 sm:py-16">
         {/* Header Section */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 animate-fadeInUp bg-gradient-to-r from-white via-purple-200 to-pink-400 bg-clip-text text-transparent">
+        <div className="text-center mb-8 w-full sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl w-full lg:text-5xl font-bold mb-4 sm:mb-6 animate-fadeInUp bg-gradient-to-r from-white via-purple-200 to-pink-400 bg-clip-text text-transparent">
             How can we help you?
           </h1>
           <p className="text-gray-300 text-base sm:text-lg lg:text-xl mb-8 sm:mb-12 max-w-3xl mx-auto animate-fadeInUp delay-100 px-4">
@@ -267,8 +267,8 @@ const Page = () => {
               Still need help?
             </h3>
             <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base px-4">
-              Can&apos;t find what you&apos;re looking for? Our support team is here to
-              assist you.
+              Can&apos;t find what you&apos;re looking for? Our support team is
+              here to assist you.
             </p>
             <button className="px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-purple-500/50 text-sm sm:text-base">
               Contact Support Team

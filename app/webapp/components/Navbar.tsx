@@ -59,9 +59,9 @@ const Navbar = () => {
   ];
 
   return (
-    <div className="w-[50px] text-[10px] pn:max-sm:self-end pn:max-sm:hidden pn:max-sm:w-[100%] pn:max-sm:h-[100px] pn:max-sm:flex-row h-[calc(100vh-100px)] flex flex-col items-center justify-between p-2 text-white">
+    <div className="w-[50px] text-[10px] pn:max-sm:self-center   pn:max-sm:absolute pn:max-sm:bottom-0 pn:max-sm:z-10 pn:max-sm:bg-white/10 pn:max-sm:backdrop-blur  pn:max-sm:w-[100%] pn:max-sm:h-fit pn:max-sm:flex-row h-[calc(100vh-100px)] flex flex-col pn:max-sm:items-center justify-between  sm:p-2 text-white">
       {/* Top Section */}
-      <div className="flex  flex-col items-center gap-4">
+      <div className="flex flex-col pn:max-sm:flex-row items-center pn:max-sm:justify-center pn:max-sm:px-4 gap-4">
         {navItems.map((item, idx) =>
           !siteId && item?.label === "Dashboard" ? null : (
             <Link
@@ -82,12 +82,8 @@ const Navbar = () => {
           )
         )}
       </div>
-
-      {/* Divider */}
-      {/* <hr className="my-4 border-[#2b2b2b] w-full" /> */}
-
       {/* Bottom Section */}
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col pn:max-sm:hidden items-center gap-4">
         {bottomItems.map((item, idx) => (
           <div
             key={idx}

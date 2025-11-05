@@ -41,6 +41,18 @@ interface Sitedata {
       last_plugin_update: string;
       last_post: string;
     };
+    plugins: {
+      active_plugins: string[];
+      inactive_plugins: string[];
+      total_plugins: number;
+      plugin_list: {
+        name: string;
+        version: string;
+        description: string;
+        tags: string[];
+        is_active: boolean;
+      }[];
+    };
   };
 }
 interface Currenttheme {
@@ -62,7 +74,8 @@ function DashboardPage() {
   // const [isPostsOpen, setIsPostsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("All");
   const search = useSearchParams();
-  const siteId = search.get("siteId");
+  // const[siteId,setSiteId]=useState<string|null>(sessionStorage.getItem("siteId")||"");
+  const siteId = sessionStorage.getItem("siteId") || "";
 
   const getSiteData = async () => {
     try {
@@ -308,30 +321,30 @@ function DashboardPage() {
   // Hardcoded WordPress Server Information
   const serverInfo = {
     general: {
-      serverName: "WordPress Server",
+      serverName: sitedata?.data?.server?.server_name || "Not found",
       operatingSystem: "Linux Ubuntu 22.04 LTS",
-      serverSoftware: "Apache/2.4.54",
-      phpVersion: "8.2.14",
+      serverSoftware: sitedata?.data?.server?.server_software || "Not found",
+      phpVersion: sitedata?.data?.php_version || "Not found",
       mysqlVersion: "8.0.35",
-      wordpressVersion: "6.4.2",
+      wordpressVersion: sitedata?.data?.wp_version || "Not found",
     },
-    resources: {
-      cpuUsage: "42%",
-      memoryUsage: "3.2 GB / 8 GB",
-      diskUsage: "245.7 MB / 50 GB",
-      uptime: "15 days, 8 hours",
-    },
-    performance: {
-      maxExecutionTime: "300 seconds",
-      memoryLimit: "256 MB",
-      uploadMaxSize: "64 MB",
-      postMaxSize: "64 MB",
-    },
-    security: {
-      sslEnabled: "Yes",
-      firewallStatus: "Active",
-      lastBackup: "2024-01-15 14:30:00",
-    },
+    // resources: {
+    //   cpuUsage: "42%",
+    //   memoryUsage: "3.2 GB / 8 GB",
+    //   diskUsage: "245.7 MB / 50 GB",
+    //   uptime: "15 days, 8 hours",
+    // },
+    // performance: {
+    //   maxExecutionTime: "300 seconds",
+    //   memoryLimit: "256 MB",
+    //   uploadMaxSize: "64 MB",
+    //   postMaxSize: "64 MB",
+    // },
+    // security: {
+    //   automatic_updates: sitedata?.data?.security?.automatic_updates || "Not found",
+    //   firewallStatus: "Active",
+    //   lastBackup: "2024-01-15 14:30:00",
+    // },
   };
 
   const databases = [
@@ -371,12 +384,14 @@ function DashboardPage() {
     return true;
   });
 
-  const filteredWordPressPlugins = wordpressPlugins.filter((plugin) => {
-    if (activeTab === "All") return true;
-    if (activeTab === "Active") return plugin.status === "Active";
-    if (activeTab === "Not Active") return plugin.status === "Inactive";
-    return true;
-  });
+  const filteredWordPressPlugins = sitedata?.data?.plugins?.plugin_list.filter(
+    (plugin) => {
+      if (activeTab === "All") return true;
+      if (activeTab === "Active") return plugin.is_active === true;
+      if (activeTab === "Not Active") return plugin.is_active === false;
+      return true;
+    }
+  );
 
   // const recentActivity = [
   //   { activity: "Last Post", time: "6:19 pm" },
@@ -388,7 +403,7 @@ function DashboardPage() {
 
   // Loading Component
   const LoadingAnimation = () => (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full  flex items-center justify-center">
       <style>{`
         @keyframes spin {
           from {
@@ -565,12 +580,12 @@ function DashboardPage() {
                       </div>
                     ))}
                 </div>
-                <button
+                {/* <button
                   // onClick={() => setIsUsersOpen(true)}
                   className="flex items-center gap-2 text-xs sm:text-sm hover:text-zinc-300 transition-colors"
                 >
                   View All <ArrowRight size={14} />
-                </button>
+                </button> */}
               </div>
 
               {/* Pages Card */}
@@ -601,12 +616,12 @@ function DashboardPage() {
                     comments
                   </span>
                 </div>
-                <button
+                {/* <button
                   // onClick={() => setIsPagesOpen(true)}
                   className="flex items-center gap-2 text-xs sm:text-sm hover:text-zinc-300 transition-colors"
                 >
                   View All <ArrowRight size={14} />
-                </button>
+                </button> */}
               </div>
 
               {/* Posts Card */}
@@ -634,12 +649,12 @@ function DashboardPage() {
                     {sitedata?.data?.content_counts?.posts || 0}
                   </span>
                 </div>
-                <button
+                {/* <button
                   // onClick={() => setIsPostsOpen(true)}
                   className="flex items-center gap-2 text-xs sm:text-sm hover:text-zinc-300 transition-colors"
                 >
                   View All <ArrowRight size={14} />
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -942,7 +957,7 @@ function DashboardPage() {
           {/* Plugins Modal */}
           {isPluginsOpen && (
             <div
-              className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn overflow-x-hidden"
+              className="fixed inset-0 bg-black/50 opacity-100 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn overflow-x-hidden"
               onClick={() => setIsPluginsOpen(false)}
             >
               <div
@@ -967,7 +982,7 @@ function DashboardPage() {
                       Total Plugins
                     </span>
                     <span className="text-2xl sm:text-3xl font-bold text-white">
-                      {wordpressPlugins.length}
+                      {sitedata?.data?.plugins?.total_plugins}
                     </span>
                   </div>
                 </div>
@@ -1039,12 +1054,12 @@ function DashboardPage() {
                           </div>
                           <span
                             className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ml-2 ${
-                              plugin.status === "Active"
+                              plugin.is_active
                                 ? "bg-green-500 text-white"
                                 : "bg-zinc-600 text-zinc-300"
                             }`}
                           >
-                            {plugin.status}
+                            {plugin.is_active ? "Active" : "Inactive"}
                           </span>
                         </div>
                       </div>
@@ -1058,7 +1073,7 @@ function DashboardPage() {
           {/* Database Info Modal */}
           {isDatabaseOpen && (
             <div
-              className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn overflow-x-hidden"
+              className="fixed inset-0 bg-black/50 opacity-100 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn overflow-x-hidden"
               onClick={() => setIsDatabaseOpen(false)}
             >
               <div
@@ -1090,55 +1105,55 @@ function DashboardPage() {
                         <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">Name:</span>
                           <span className="text-sm font-medium text-white">
-                            {databaseInfo.overview.databaseName}
+                            {sitedata?.data?.database?.db_name}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">Type:</span>
                           <span className="text-sm font-medium text-white">
                             {databaseInfo.overview.type}
                           </span>
-                        </div>
-                        <div className="flex justify-between">
+                        </div> */}
+                        {/* <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">
                             Version:
                           </span>
                           <span className="text-sm font-medium text-white">
                             {databaseInfo.overview.version}
                           </span>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">Size:</span>
                           <span className="text-sm font-medium text-white">
-                            {databaseInfo.overview.totalSize}
+                            {sitedata?.data?.database?.db_size}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">Tables:</span>
                           <span className="text-sm font-medium text-white">
                             {databaseInfo.overview.totalTables}
                           </span>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">Host:</span>
                           <span className="text-sm font-medium text-white">
-                            {databaseInfo.overview.host}
+                            {sitedata?.data?.database?.db_host}
                           </span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">
                             Collation:
                           </span>
                           <span className="text-sm font-medium text-white">
                             {databaseInfo.overview.collation}
                           </span>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between">
                           <span className="text-sm text-zinc-400">
                             Charset:
                           </span>
                           <span className="text-sm font-medium text-white">
-                            {databaseInfo.overview.charset}
+                            {sitedata?.data?.database?.db_charset}
                           </span>
                         </div>
                       </div>
@@ -1146,7 +1161,7 @@ function DashboardPage() {
                   </div>
 
                   {/* Database Tables */}
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold text-white mb-4">
                       Database Tables
                     </h3>
@@ -1191,7 +1206,7 @@ function DashboardPage() {
                         </tbody>
                       </table>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -1200,7 +1215,7 @@ function DashboardPage() {
           {/* Server Info Modal */}
           {isServerOpen && (
             <div
-              className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn overflow-x-hidden"
+              className="fixed inset-0 bg-black/50 opacity-100 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-fadeIn overflow-x-hidden"
               onClick={() => setIsServerOpen(false)}
             >
               <div
@@ -1228,7 +1243,7 @@ function DashboardPage() {
                       General Information
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {Object.entries(serverInfo.general).map(
+                      {Object.entries(serverInfo?.general).map(
                         ([key, value]) => (
                           <div
                             key={key}
@@ -1247,12 +1262,12 @@ function DashboardPage() {
                   </div>
 
                   {/* Resource Usage */}
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold text-white mb-4">
                       Resource Usage
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {Object.entries(serverInfo.resources).map(
+                      {Object.entries(serverInfo?.resources).map(
                         ([key, value]) => (
                           <div
                             key={key}
@@ -1268,15 +1283,15 @@ function DashboardPage() {
                         )
                       )}
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Performance Settings */}
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold text-white mb-4">
                       Performance Settings
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {Object.entries(serverInfo.performance).map(
+                      {Object.entries(serverInfo?.performance).map(
                         ([key, value]) => (
                           <div
                             key={key}
@@ -1292,15 +1307,15 @@ function DashboardPage() {
                         )
                       )}
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Security Information */}
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold text-white mb-4">
                       Security Information
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {Object.entries(serverInfo.security).map(
+                      {Object.entries(serverInfo?.security).map(
                         ([key, value]) => (
                           <div
                             key={key}
@@ -1316,7 +1331,7 @@ function DashboardPage() {
                         )
                       )}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>

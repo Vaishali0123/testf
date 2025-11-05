@@ -347,7 +347,7 @@ const Page = () => {
 
   return (
     <div
-      className={`duration-200  flex w-full items-center justify-center h-full ${
+      className={`duration-200 flex w-full items-center justify-center h-full ${
         reload === false ? "border-transparent gap-2" : "border-transparent"
       }`}
     >
@@ -359,7 +359,7 @@ const Page = () => {
             ? "w-[100%]"
             : "w-[30%]"
         }
-        h-full border flex flex-row-reverse bg-red-600 items-center justify-center overflow-hidden`}
+        h-full border flex flex-row-reverse items-center justify-center overflow-hidden`}
       >
         {siteurl ? (
           <iframe

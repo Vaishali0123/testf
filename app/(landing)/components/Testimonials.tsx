@@ -14,16 +14,16 @@ const testimonials = [
     role: "IT Manager",
   },
   {
-    text: "The support team is exceptional, guiding us through setup and providing ongoing assistance, ensuring our satisfaction.",
+    text: "I was paying $400 every time I needed to update my menu. Last week, I told Webivus 'add our summer specials to the menu page' and it was done in 30 seconds. I've saved $3,200 this quarter alone.",
     image: "https://randomuser.me/api/portraits/women/3.jpg",
-    name: "Saman Malik",
-    role: "Customer Support Lead",
+    name: "Mike Thompson",
+    role: "Restaurant Owner",
   },
   {
-    text: "This ERP's seamless integration enhanced our business operations and efficiency. Highly recommend for its intuitive interface.",
+    text: "My developer wanted $2,000 to optimize my site speed. Webivus did it for free in my first week. My pages load 4x faster now. Best $49 I spend each month.",
     image: "https://randomuser.me/api/portraits/men/4.jpg",
-    name: "Omar Raza",
-    role: "CEO",
+    name: "Lisa Chang",
+    role: "Online Boutique",
   },
   {
     text: "Its robust features and quick support have transformed our workflow, making us significantly more efficient.",
@@ -64,7 +64,7 @@ const thirdColumn = testimonials.slice(6, 9);
 const Testimonials = () => {
   return (
     <section className="bg-background my-20 relative">
-      <div className="container z-10 mx-auto">
+      <div className="sm:container z-10 mx-auto">
         <div className="flex flex-col items-center justify-center max-w-[540px] mx-auto">
           <div className="flex justify-center">
             <div className="border border-white/5  py-1 px-4 rounded-lg">
@@ -72,11 +72,12 @@ const Testimonials = () => {
             </div>
           </div>
 
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5">
-            What our users say
+          <h2 className="text-xl sm:text-2xl text-center md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5">
+            {/* What our users say */}
+            Real Stories, Real Savings
           </h2>
           <p className="text-center mt-5 opacity-75">
-            See what our customers have to say about us.
+            They Fired Their Expensive Developers (And They're Thrilled)
           </p>
         </div>
 
